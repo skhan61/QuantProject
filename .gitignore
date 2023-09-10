@@ -1,0 +1,7 @@
+# Ignore all files by default
+*
+
+# Whitelist only .py and .ipynb files
+!*.py
+!*.ipynb
+!.gitignore
