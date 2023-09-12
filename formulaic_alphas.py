@@ -1,21 +1,6 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# ##### 101 Formulaic Alphas
-
-# - Based on [101 Formulaic Alphas](https://arxiv.org/pdf/1601.00991.pdf), Zura Kakushadze, arxiv, 2015
-
-# ##### Imports & Settings
-
-# In[ ]:
-
 
 import warnings
 warnings.filterwarnings('ignore')
-
-
-# In[ ]:
-
 
 get_ipython().run_line_magic('matplotlib', 'inline')
 
@@ -26,16 +11,8 @@ from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
 import seaborn as sns
 from talib import WMA
-
-
-# In[ ]:
-
-
 idx= pd.IndexSlice
 sns.set_style('whitegrid')
-
-
-# In[ ]:
 
 
 def rank(df):
@@ -49,10 +26,6 @@ def rank(df):
      """
     return df.rank(axis=1, pct=True)
 
-
-# In[ ]:
-
-
 def scale(df):
     """
     Scaling time serie.
@@ -62,29 +35,15 @@ def scale(df):
     """
     return df.div(df.abs().sum(axis=1), axis=0)
 
-
-# In[ ]:
-
-
 def log(df):
     return np.log1p(df)
-
-
-# In[ ]:
-
 
 def sign(df):
     return np.sign(df)
 
-
-# In[ ]:
-
-
 def power(df, exp):
     return df.pow(exp)
 
-
-# In[ ]:
 
 
 def ts_lag(df: pd.DataFrame, t: int = 1) -> pd.DataFrame:
@@ -98,9 +57,6 @@ def ts_lag(df: pd.DataFrame, t: int = 1) -> pd.DataFrame:
         pd.DataFrame: the lagged values
     """
     return df.shift(t)
-
-
-# In[ ]:
 
 
 def ts_delta(df, period=1):
@@ -283,113 +239,26 @@ def ts_cov(x, y, window=10):
     return x.rolling(window).cov(y)
 
 
-# In[ ]:
-
-
-ohlcv = ['open', 'high', 'low', 'close', 'volume']
-data = (pd.read_hdf('data.h5', 'data/top500')
-        .loc[:, ohlcv + ['ret_01', 'sector', 'ret_fwd']]
-        .rename(columns={'ret_01': 'returns'})
-        .sort_index())
-
-
-# In[ ]:
-
-
-adv20 = data.groupby('ticker').rolling(20).volume.mean().reset_index(0, drop=True)
-
-
-# In[ ]:
-
-
-data = data.assign(adv20=adv20)
-
-
-# In[ ]:
-
-
-data = data.join(data.groupby('date')[ohlcv].rank(axis=1, pct=True), rsuffix='_rank')
-
-
-# In[ ]:
-
-
-data.info(null_counts=True)
-
-
-# In[ ]:
-
-
-# data.to_hdf('factors.h5', 'data')
-
-
-# In[ ]:
-
-
-o = data.open.unstack('ticker')
-h = data.high.unstack('ticker')
-l = data.low.unstack('ticker')
-c = data.close.unstack('ticker')
-v = data.volume.unstack('ticker')
-vwap = o.add(h).add(l).add(c).div(4)
-adv20 = v.rolling(20).mean()
-r = data.returns.unstack('ticker')
-
-
-# ## Evaluate Alphas
-
-# In[ ]:
-
-
-alphas = data[['returns', 'ret_fwd']].copy()
-mi,ic = {}, {}
-
-
-# In[ ]:
-
 
 def get_mutual_info_score(returns, alpha, n=100000):
     df = pd.DataFrame({'y': returns, 'alpha': alpha}).dropna().sample(n=n)
     return mutual_info_regression(y=df.y, X=df[['alpha']])[0]
 
 
-# ## Alpha 001
-
-# ```
-# rank(ts_argmax(power(((returns < 0) ? ts_std(returns, 20) : close), 2.), 5))
-# ```
-
-# In[ ]:
-
-
 def alpha001(c, r):
-    """(rank(ts_argmax(power(((returns < 0)
-        ? ts_std(returns, 20)
-        : close), 2.), 5)) -0.5)"""
-    c[r < 0] = ts_std(r, 20)
-    return (rank(ts_argmax(power(c, 2), 5)).mul(-.5)
-            .stack().swaplevel())
-
-
-# In[ ]:
-
-
-alpha = 1
-
-
-# In[ ]:
-
-
-get_ipython().run_cell_magic('time', '', "alphas[f'{alpha:03}'] = alpha001(c, r)\n")
-
-
-# In[ ]:
-
-
-alphas.info()
-
-
-# In[ ]:
+    """Compute the alpha001 formula.
+    
+    Args:
+    - c (pd.DataFrame): Close prices
+    - r (pd.DataFrame): Returns
+    
+    Returns:
+    - pd.DataFrame: Computed alpha001 values
+    """
+    modified_c = c.copy()
+    modified_c[r < 0] = ts_std(r, 20)
+    
+    return (rank(ts_argmax(power(modified_c, 2), 5)).mul(-.5))
 
 
 def alpha002(o, c, v):
@@ -399,16 +268,6 @@ def alpha002(o, c, v):
     alpha = -ts_corr(s1, s2, 6)
     return alpha.stack('ticker').swaplevel().replace([-np.inf, np.inf], np.nan)
 
-
-# ## Alpha 003
-
-# ```
-# (-1 * correlation(rank(open), rank(volume), 10))
-# ```
-
-# In[ ]:
-
-
 def alpha003(o, v):
     """(-1 * ts_corr(rank(open), rank(volume), 10))"""
 
@@ -417,25 +276,11 @@ def alpha003(o, v):
             .swaplevel()
             .replace([-np.inf, np.inf], np.nan))
 
-
-# ## Alpha 004
-
-# ```
-# (-1 * Ts_Rank(rank(low), 9))
-# ```
-
-# In[ ]:
-
-
 def alpha004(l):
     """(-1 * Ts_Rank(rank(low), 9))"""
     return (-ts_rank(rank(l), 9)
             .stack('ticker')
             .swaplevel())
-
-
-# In[ ]:
-
 
 def alpha005(o, vwap, c):
     """(rank((open - ts_mean(vwap, 10))) * (-1 * abs(rank((close - vwap)))))"""
@@ -444,19 +289,11 @@ def alpha005(o, vwap, c):
             .stack('ticker')
             .swaplevel())
 
-
-# In[ ]:
-
-
 def alpha006(o, v):
     """(-ts_corr(open, volume, 10))"""
     return (-ts_corr(o, v, 10)
             .stack('ticker')
             .swaplevel())
-
-
-# In[ ]:
-
 
 def alpha007(c, v, adv20):
     """(adv20 < volume) 
@@ -472,9 +309,6 @@ def alpha007(c, v, adv20):
             .swaplevel())
 
 
-# In[ ]:
-
-
 def alpha008(o, r):
     """-rank(((ts_sum(open, 5) * ts_sum(returns, 5)) - 
         ts_lag((ts_sum(open, 5) * ts_sum(returns, 5)),10)))
@@ -483,9 +317,6 @@ def alpha008(o, r):
                        ts_lag((ts_sum(o, 5) * ts_sum(r, 5)), 10))))
            .stack('ticker')
             .swaplevel())
-
-
-# In[ ]:
 
 
 def alpha009(c):
@@ -1776,29 +1607,4 @@ def alpha101(o, h, l, c):
             .stack('ticker')
             .swaplevel())
 
-
-# ## Store results
-
-# In[ ]:
-
-
-alphas = []
-with pd.HDFStore('alphas.h5') as store:
-    keys = [k[1:] for k in store.keys()]
-    for key in keys:
-        i = int(key.split('/')[-1])
-        alphas.append(store[key].to_frame(i))
-alphas = pd.concat(alphas, axis=1)
-
-
-# In[ ]:
-
-
-alphas.info(null_counts=True)
-
-
-# In[ ]:
-
-
-alphas.to_hdf('data.h5', 'factors/formulaic')
 
