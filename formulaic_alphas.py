@@ -1371,7 +1371,7 @@ def alpha084(c, vwap):
 # In[ ]:
 
 
-def alpha085(l, h, v):
+def alpha085(l, c, h, v):
     """power(rank(ts_corr(((high * 0.876703) + (close * (1 - 0.876703))), adv30,9.61331)),
         rank(ts_corr(ts_rank(((high + low) / 2), 3.70596), 
                      ts_rank(volume, 10.1595),7.11408)))
@@ -1516,9 +1516,6 @@ def alpha095(o, h, l, v):
             .swaplevel())
 
 
-# In[ ]:
-
-
 def alpha097(l):
     """((rank(ts_weighted_mean(ts_delta(IndNeutralize(((low * 0.721001) + 
         (vwap * (1 - 0.721001))),IndClass.industry), 3.3705), 20.4523)) - 
@@ -1526,9 +1523,6 @@ def alpha097(l):
         ts_rank(adv60, 17.255), 4.97547), 18.5925), 15.7152), 6.71659)) * -1)
     """
     pass
-
-
-# In[ ]:
 
 
 def alpha098(o, v, vwap):
@@ -1543,9 +1537,6 @@ def alpha098(o, v, vwap):
                                                                  rank(adv15), 20), 8), 6))))
             .stack('ticker')
             .swaplevel())
-
-
-# In[ ]:
 
 
 def alpha099(l, h, v):
