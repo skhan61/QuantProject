@@ -159,9 +159,6 @@ def ts_product(df, window=10):
             .apply(np.prod))
 
 
-# In[ ]:
-
-
 def ts_min(df, window=10):
     """
     Wrapper function to estimate rolling min.
@@ -170,11 +167,7 @@ def ts_min(df, window=10):
     :return: a pandas DataFrame with the time-series min over the past 'window' days.
     """
     return df.rolling(window).min()
-
-
-# In[ ]:
-
-
+    
 def ts_max(df, window=10):
     """
     Wrapper function to estimate rolling min.
@@ -184,10 +177,6 @@ def ts_max(df, window=10):
     """
     return df.rolling(window).max()
 
-
-# In[ ]:
-
-
 def ts_argmax(df, window=10):
     """
     Wrapper function to estimate which day ts_max(df, window) occurred on
@@ -196,9 +185,6 @@ def ts_argmax(df, window=10):
     :return: well.. that :)
     """
     return df.rolling(window).apply(np.argmax).add(1)
-
-
-# In[ ]:
 
 
 def ts_argmin(df, window=10):
@@ -246,20 +232,12 @@ def get_mutual_info_score(returns, alpha, n=100000):
 
 
 def alpha001(c, r):
-    """Compute the alpha001 formula.
-    
-    Args:
-    - c (pd.DataFrame): Close prices
-    - r (pd.DataFrame): Returns
-    
-    Returns:
-    - pd.DataFrame: Computed alpha001 values
-    """
-    modified_c = c.copy()
-    modified_c[r < 0] = ts_std(r, 20)
-    
-    return (rank(ts_argmax(power(modified_c, 2), 5)).mul(-.5))
-
+    """(rank(ts_argmax(power(((returns < 0)
+        ? ts_std(returns, 20)
+        : close), 2.), 5)) -0.5)"""
+    c[r < 0] = ts_std(r, 20)
+    return (rank(ts_argmax(power(c, 2), 5)).mul(-.5)
+            .stack().swaplevel())
 
 def alpha002(o, c, v):
     """(-1 * ts_corr(rank(ts_delta(log(volume), 2)), rank(((close - open) / open)), 6))"""
@@ -726,7 +704,7 @@ def alpha035(h, l, c, v, r):
 # In[ ]:
 
 
-def alpha036(o, c, v, r, adv20):
+def alpha036(o, h, l, c, v, r, adv20, vwap):
     """2.21 * rank(ts_corr((close - open), ts_lag(volume, 1), 15)) +
         0.7 * rank((open- close)) +
         0.73 * rank(ts_Rank(ts_lag(-1 * returns, 6), 5)) +
@@ -816,7 +794,7 @@ def alpha042(c, vwap):
 # In[ ]:
 
 
-def alpha043(c, adv20):
+def alpha043(c, v, adv20):
     """(ts_rank((volume / adv20), 20) * ts_rank((-1 * ts_delta(close, 7)), 8))"""
 
     return (ts_rank(v.div(adv20), 20)
@@ -992,7 +970,7 @@ def alpha054(o, h, l, c):
 # In[ ]:
 
 
-def alpha055(h, l, c):
+def alpha055(h, v, l, c):
     """(-1 * ts_corr(rank(((close - ts_min(low, 12)) / 
                             (ts_max(high, 12) - ts_min(low,12)))), 
                     rank(volume), 6))"""
@@ -1133,7 +1111,7 @@ def alpha065(o, v, vwap):
 # In[ ]:
 
 
-def alpha066(l, h, vwap):
+def alpha066(l, o, h, vwap):
     """((rank(ts_weighted_mean(ts_delta(vwap, 3.51013), 7.23052)) +
         ts_rank(ts_weighted_mean(((((low* 0.96633) + (low *
                                     (1 - 0.96633))) - vwap) /
@@ -1163,7 +1141,7 @@ def alpha067(h, v, sector, subindustry):
 # In[ ]:
 
 
-def alpha068(h, c, v):
+def alpha068(h, l, c, v):
     """((ts_rank(ts_corr(rank(high), rank(adv15), 8.91644), 13.9333) <
         rank(ts_delta(((close * 0.518371) + (low * (1 - 0.518371))), 1.06157))) * -1)
     """
@@ -1188,7 +1166,7 @@ def alpha069(c, vwap, industry):
 # In[ ]:
 
 
-def alpha076(c, v, vwap, industry):
+def alpha070(c, v, vwap, industry):
     """((power(rank(ts_delta(vwap, 1.29456)),
         ts_rank(ts_corr(IndNeutralize(close, IndClass.industry), adv50, 17.8256), 17.9171))) * -1)
     """
@@ -1198,7 +1176,7 @@ def alpha076(c, v, vwap, industry):
 # In[ ]:
 
 
-def alpha071(o, c, v, vwap):
+def alpha071(o, l, c, v, vwap):
     """max(ts_rank(ts_weighted_mean(ts_corr(ts_rank(close, 3.43976), ts_rank(adv180,12.0647), 18.0175), 4.20501), 15.6948), 
             ts_rank(ts_weighted_mean((rank(((low + open) - (vwap +vwap)))^2), 16.4662), 4.4388))"""
 
@@ -1228,7 +1206,7 @@ def alpha072(h, l, v, vwap):
 # In[ ]:
 
 
-def alpha073(l, vwap):
+def alpha073(l, o, vwap):
     """(max(rank(ts_weighted_mean(ts_delta(vwap, 4.72775), 2.91864)),
         ts_rank(ts_weighted_mean(((ts_delta(((open * 0.147155) + 
             (low * (1 - 0.147155))), 2.03608) / 
@@ -1239,7 +1217,7 @@ def alpha073(l, vwap):
     s2 = (ts_rank(ts_weighted_mean(ts_delta(o.mul(w).add(l.mul(1 - w)), 2)
                                    .div(o.mul(w).add(l.mul(1 - w)).mul(-1)), 3), 16))
 
-    print(s2)
+    # print(s2)
     return (s1.where(s1 > s2, s2)
             .mul(-1)
             .stack('ticker')
@@ -1249,7 +1227,7 @@ def alpha073(l, vwap):
 # In[ ]:
 
 
-def alpha074(v, vwap):
+def alpha074(v, c, vwap):
     """((rank(ts_corr(close, ts_sum(adv30, 37.4843), 15.1365)) <
         rank(ts_corr(rank(((high * 0.0261661) + (vwap * (1 - 0.0261661)))), rank(volume), 11.4791)))* -1)"""
 
@@ -1286,10 +1264,7 @@ def alpha076(l, vwap, sector):
     pass
 
 
-# In[ ]:
-
-
-def alpha077(l, h, vwap):
+def alpha077(l, v, h, vwap):
     """min(rank(ts_weighted_mean(((((high + low) / 2) + high) - (vwap + high)), 20.0451)),
             rank(ts_weighted_mean(ts_corr(((high + low) / 2), adv40, 3.1614), 5.64125)))
     """
@@ -1367,7 +1342,7 @@ def alpha082(o, v, sector):
 # In[ ]:
 
 
-def alpha083(h, l, c):
+def alpha083(h, v, l, c):
     """(rank(ts_lag((high - low) / ts_mean(close, 5), 2)) * rank(rank(volume)) / 
             (((high - low) / ts_mean(close, 5) / (vwap - close)))
     """
@@ -1396,7 +1371,7 @@ def alpha084(c, vwap):
 # In[ ]:
 
 
-def alpha085(l, v):
+def alpha085(l, h, v):
     """power(rank(ts_corr(((high * 0.876703) + (close * (1 - 0.876703))), adv30,9.61331)),
         rank(ts_corr(ts_rank(((high + low) / 2), 3.70596), 
                      ts_rank(volume, 10.1595),7.11408)))
@@ -1487,7 +1462,7 @@ def alpha091(v, vwap, industry):
 # In[ ]:
 
 
-def alpha092(o, l, c, v):
+def alpha092(o, h, l, c, v):
     """min(ts_rank(ts_weighted_mean(((((high + low) / 2) + close) < (low + open)), 14.7221),18.8683), 
             ts_rank(ts_weighted_mean(ts_corr(rank(low), rank(adv30), 7.58555), 6.94024),6.80584))
     """
@@ -1528,7 +1503,7 @@ def alpha094(v, vwap):
 # In[ ]:
 
 
-def alpha095(o, l, v):
+def alpha095(o, h, l, v):
     """(rank((open - ts_min(open, 12.4105))) < 
         ts_rank((rank(ts_corr(ts_sum(((high + low)/ 2), 19.1351), ts_sum(adv40, 19.1351), 12.8742))^5), 11.7584))
     """
@@ -1573,7 +1548,7 @@ def alpha098(o, v, vwap):
 # In[ ]:
 
 
-def alpha099(l, v):
+def alpha099(l, h, v):
     """((rank(ts_corr(ts_sum(((high + low) / 2), 19.8975), 
                     ts_sum(adv60, 19.8975), 8.8136)) <
                     rank(ts_corr(low, volume, 6.28259))) * -1)"""
