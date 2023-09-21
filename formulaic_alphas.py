@@ -1,4 +1,3 @@
-
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -15,6 +14,22 @@ idx= pd.IndexSlice
 sns.set_style('whitegrid')
 
 
+def indneutralize(series, sector):
+    """Neutralize a series by subtracting the sector mean."""
+    # Flatten the input data
+    flattened_series = series.stack()
+    flattened_sector = sector.stack()
+    
+    # Calculate the sector means
+    sector_means = flattened_series.groupby(flattened_sector).transform('mean')
+    
+    # Subtract sector means to neutralize
+    neutralized = flattened_series - sector_means
+    
+    # Reshape back to the original dataframe format
+    return neutralized.unstack()
+
+    
 def rank(df):
     """Return the cross-sectional percentile rank
 
@@ -857,9 +872,6 @@ def alpha046(c):
             .swaplevel())
 
 
-# In[ ]:
-
-
 def alpha047(h, c, v, vwap, adv20):
     """((((rank((1 / close)) * volume) / adv20) * ((high * rank((high - close))) / 
         (ts_sum(high, 5) /5))) - rank((vwap - ts_lag(vwap, 5))))"""
@@ -872,17 +884,30 @@ def alpha047(h, c, v, vwap, adv20):
             .swaplevel())
 
 
-# In[ ]:
+def alpha048(c, sector):
+    """Computes alpha48 factor.
+    
+    Args:
+        c (pd.DataFrame): DataFrame containing closing prices with tickers in columns and dates in rows.
+        sector (pd.DataFrame): DataFrame containing sector data with the same structure as c.
+        
+    Returns:
+        pd.Series: alpha48 values averaged across tickers.
+    """
+    # Calculate the intermediate values
+    delta_c_1 = ts_delta(c, 1)
+    lag_c_1 = ts_lag(c, 1)
+    corr_val = ts_corr(delta_c_1, ts_delta(lag_c_1, 1), 250) * delta_c_1 / c
+    squared_diff = (delta_c_1 / lag_c_1).pow(2)
+    
+    # Compute the alpha48 formula
+    alpha_val = indneutralize(corr_val, sector) / ts_sum(squared_diff, 250)
+    
+    # Average across all tickers to reduce dimensionality
+    alpha_val_mean = alpha_val.mean(axis=1)
+    
+    return alpha_val_mean
 
-
-def alpha48(c, industry):
-    """(indneutralize(((ts_corr(ts_delta(close, 1), ts_delta(ts_lag(close, 1), 1), 250) * 
-        ts_delta(close, 1)) / close), IndClass.subindustry) / 
-        ts_sum(((ts_delta(close, 1) / ts_lag(close, 1))^2), 250))"""
-    pass
-
-
-# In[ ]:
 
 
 def alpha049(c):
@@ -907,9 +932,6 @@ def alpha050(v, vwap):
             .mul(-1)
             .stack('ticker')
             .swaplevel())
-
-
-# In[ ]:
 
 
 def alpha051(c):
@@ -985,14 +1007,22 @@ def alpha055(h, v, l, c):
             .swaplevel())
 
 
-# In[ ]:
-
-
-def alpha056(r, cap):
+def alpha056(r, market_cap):
     """-rank(ts_sum(returns, 10) / ts_sum(ts_sum(returns, 2), 3)) * 
         rank((returns * cap))
     """
-    pass
+    rank1 = rank(ts_sum(r, 10) / ts_sum(ts_sum(r, 2), 3))
+    rank2 = rank(r.multiply(market_cap))  # Using multiply to ensure element-wise multiplication
+    
+    result = (-rank1 * rank2)
+    
+    # Ensure that result is a DataFrame with the expected shape
+    if not isinstance(result, pd.DataFrame) or result.shape[1] != r.shape[1]:
+        raise ValueError(f"Unexpected result shape: {result.shape}")
+
+    # Sum across tickers to produce a single-valued series for each date
+    return result.sum(axis=1)
+
 
 
 # In[ ]:
@@ -1006,27 +1036,44 @@ def alpha057(c, vwap):
             .swaplevel())
 
 
-# In[ ]:
-
-
-def alpha58(v, wvap, sector):
-    """(-1 * ts_rank(ts_weighted_mean(ts_corr(IndNeutralize(vwap, IndClass.sector), volume, 3), 7), 5))"""
+def alpha058(v, vwap, sector):
     pass
+    # # Step 1: Neutralize vwap
+    # sector_neutralized_vwap = indneutralize(vwap, sector)
+    
+    # # Step 2: Compute the rolling correlation with v over 3 days
+    # correlation = ts_corr(sector_neutralized_vwap, v, window=3)
+    
+    # # Step 3: Apply the weighted mean over 7 days
+    # weighted_mean = ts_weighted_mean(correlation, period=7)
+    
+    # # Step 4: Rank the result over 5 days
+    # ranked = ts_rank(weighted_mean, window=5)
+    
+    # # Step 5: Multiply by -1
+    # result = -1 * ranked
+    
+    # # Ensure the output is a pandas Series
+    # if isinstance(result, pd.DataFrame) and result.shape[1] == 1:
+    #     return result.iloc[:, 0].squeeze()
+    # elif isinstance(result, pd.Series):
+    #     return result
+    # else:
+    #     raise ValueError("Unexpected result type. Expected Series or single column DataFrame.")
 
 
-# In[ ]:
-
-
-def alpha59(v, wvap, industry):
-    """-ts_rank(ts_weighted_mean(ts_corr(IndNeutralize(vwap, IndClass.industry), volume, 4), 16), 8)"""
-    pass
-
-
-# In[ ]:
-
+# def alpha059(v, vwap, sector):
+#     """-ts_rank(ts_weighted_mean(ts_corr(IndNeutralize(vwap, IndClass.sector), volume, 4), 16), 8)"""
+    
+#     sector_neutralized_vwap = indneutralize(vwap, sector)
+#     correlation = ts_corr(sector_neutralized_vwap, v, 4)
+#     weighted_mean = ts_weighted_mean(correlation, 16)
+    
+#     return -1 * ts_rank(weighted_mean, 8)
 
 def alpha060(l, h, c, v):
-    """-((2 * scale(rank(((((close - low) - (high - close)) / (high - low)) * volume)))) -scale(rank(ts_argmax(close, 10))))"""
+    """-((2 * scale(rank(((((close - low) - (high - close)) / \
+        (high - low)) * volume)))) -scale(rank(ts_argmax(close, 10))))"""
     return (scale(rank(c.mul(2).sub(l).sub(h)
                        .div(h.sub(l).replace(0, 1e-5))
                        .mul(v))).mul(2)
@@ -1063,20 +1110,28 @@ def alpha062(o, h, l, vwap, adv20):
             .stack('ticker')
             .swaplevel())
 
+# def alpha063(c, o, vwap, adv180, sector):
+#     """
+#     ((rank(ts_weighted_mean(ts_delta(IndNeutralize(close, IndClass.sector), 2), 8)) - 
+#     rank(ts_weighted_mean(ts_corr(((vwap * 0.318108) + (open * (1 - 0.318108))), 
+#                                   ts_sum(adv180, 37), 13), 12))) * -1)
+#     """
 
-# In[ ]:
+#     combined_price = vwap * 0.318108 + o * (1 - 0.318108)
+#     adv180_sum = ts_sum(adv180, 37)
 
+#     # Ensure the indices match before correlating
+#     combined_price, adv180_sum = combined_price.align(adv180_sum, axis=0)
 
-def alpha63(v, wvap, industry):
-    """((rank(ts_weighted_mean(ts_delta(IndNeutralize(close, IndClass.industry), 2), 8)) - 
-        rank(ts_weighted_mean(ts_corr(((vwap * 0.318108) + (open * (1 - 0.318108))), 
-                                        ts_sum(adv180, 37), 13), 12))) * -1)
-    """
-    pass
+#     correlation = ts_corr(combined_price, adv180_sum, 13)
+#     correlation_mean = ts_mean(correlation, 27)
+    
+#     alpha = -rank(correlation_mean)
+    
+#     # Neutralize based on sector
+#     alpha_neutralized = indneutralize(alpha, sector)
 
-
-# In[ ]:
-
+#     return alpha_neutralized
 
 def alpha064(o, h, l, v, vwap):
     """((rank(ts_corr(ts_sum(((open * 0.178404) + (low * (1 - 0.178404))), 12.7054),ts_sum(adv120, 12.7054), 16.6208)) <
@@ -1126,10 +1181,6 @@ def alpha066(l, o, h, vwap):
             .stack('ticker')
             .swaplevel())
 
-
-# In[ ]:
-
-
 def alpha067(h, v, sector, subindustry):
     """(power(rank((high - ts_min(high, 2.14593))),
         rank(ts_corr(IndNeutralize(vwap,IndClass.sector), 
@@ -1153,32 +1204,40 @@ def alpha068(h, l, c, v):
             .swaplevel())
 
 
-# In[ ]:
+# def alpha069(c, vwap, adv20, sector):
+#     """
+#     ((power(rank(ts_max(ts_delta(IndNeutralize(vwap, IndClass.sector), 2.72412),4.79344)),
+#     ts_rank(ts_corr(((close * 0.490655) + (vwap * (1 - 0.490655))), adv20, 4.92416),9.0615))) * -1)
+#     """
+    
+#     sector_neutralized_vwap = indneutralize(vwap, sector)
+#     delta = ts_delta(sector_neutralized_vwap, 2.72412)
+#     max_delta = ts_max(delta, 4.79344)
+    
+#     combined_price = (c * 0.490655) + (vwap * (1 - 0.490655))
+#     correlation = ts_corr(combined_price, adv20, 4.92416)
+    
+#     return power(rank(max_delta), ts_rank(correlation, 9.0615)) * -1
 
+# def alpha070(c, v, vwap, adv50, sector):
+#     """
+#     ((power(rank(ts_delta(vwap, 1.29456)),
+#         ts_rank(ts_corr(IndNeutralize(close, IndClass.sector), adv50, 17.8256), 17.9171))) * -1)
+#     """
+    
+#     sector_neutralized_close = indneutralize(c, sector)
+#     delta = ts_delta(vwap, 1.29456)
+    
+#     correlation = ts_corr(sector_neutralized_close, adv50, 17.8256)
+    
+#     return power(rank(delta), ts_rank(correlation, 17.9171)) * -1
 
-def alpha069(c, vwap, industry):
-    """((power(rank(ts_max(ts_delta(IndNeutralize(vwap, IndClass.industry), 2.72412),4.79344)),
-    Ts_Rank(ts_corr(((close * 0.490655) + (vwap * (1 - 0.490655))), adv20, 4.92416),9.0615))) * -1)
-    """
-    pass
-
-
-# In[ ]:
-
-
-def alpha070(c, v, vwap, industry):
-    """((power(rank(ts_delta(vwap, 1.29456)),
-        ts_rank(ts_corr(IndNeutralize(close, IndClass.industry), adv50, 17.8256), 17.9171))) * -1)
-    """
-    pass
-
-
-# In[ ]:
 
 
 def alpha071(o, l, c, v, vwap):
-    """max(ts_rank(ts_weighted_mean(ts_corr(ts_rank(close, 3.43976), ts_rank(adv180,12.0647), 18.0175), 4.20501), 15.6948), 
-            ts_rank(ts_weighted_mean((rank(((low + open) - (vwap +vwap)))^2), 16.4662), 4.4388))"""
+    """max(ts_rank(ts_weighted_mean(ts_corr(ts_rank(close, 3.43976), \
+        ts_rank(adv180,12.0647), 18.0175), 4.20501), 15.6948), 
+        ts_rank(ts_weighted_mean((rank(((low + open) - (vwap +vwap)))^2), 16.4662), 4.4388))"""
 
     s1 = (ts_rank(ts_weighted_mean(ts_corr(ts_rank(c, 3),
                                            ts_rank(ts_mean(v, 180), 12), 18), 4), 16))
@@ -1253,15 +1312,26 @@ def alpha075(l, v, vwap):
             .stack('ticker')
             .swaplevel())
 
-
-# In[ ]:
-
-
-def alpha076(l, vwap, sector):
-    """(max(rank(ts_weighted_mean(ts_delta(vwap, 1.24383), 11.8259)),
-            ts_rank(ts_weighted_mean(ts_rank(ts_corr(IndNeutralize(low, IndClass.sector), adv81,8.14941), 19.569), 17.1543), 19.383)) * -1)
-    """
-    pass
+# def alpha076(l, vwap, sector):
+#     """
+#     (max(rank(ts_weighted_mean(ts_delta(vwap, 1.24383), 11.8259)),
+#         ts_rank(ts_weighted_mean(ts_rank(ts_corr(IndNeutralize(low, \
+#             IndClass.sector), adv81,8.14941), 19.569), 17.1543), 19.383)) * -1)
+#     """
+    
+#     # Compute the first term of max function
+#     vwap_delta = ts_delta(vwap, 1.24383)
+#     term1 = rank(ts_weighted_mean(vwap_delta, 11.8259))
+    
+#     # Compute the second term of max function
+#     sector_neutralized_low = ind_neutralize(l, sector)
+#     correlation = ts_corr(sector_neutralized_low, adv81, 8.14941)
+#     inner_rank = ts_rank(correlation, 19.569)
+#     weighted_mean = ts_weighted_mean(inner_rank, 17.1543)
+#     term2 = ts_rank(weighted_mean, 19.383)
+    
+#     # Return the final result
+#     return max(term1, term2) * -1
 
 
 def alpha077(l, v, h, vwap):
@@ -1292,23 +1362,31 @@ def alpha078(l, v, vwap):
 
 
 # In[ ]:
-
-
-def alpha079(o, v, sector):
-    """(rank(ts_delta(IndNeutralize(((close * 0.60733) + (open * (1 - 0.60733))),IndClass.sector), 1.23438)) < 
-        rank(ts_corr(Ts_Rank(vwap, 3.60973), Ts_Rank(adv150,9.18637), 14.6644)))
+def alpha079(o, c, v, vwap, adv150, sector):
     """
-    pass
-
-
-# In[ ]:
-
-
-def alpha080(h, industry):
-    """((power(rank(sign(ts_delta(IndNeutralize(((open * 0.868128) + (high * (1 - 0.868128))),IndClass.industry), 4.04545))),
-        ts_rank(ts_corr(high, adv10, 5.11456), 5.53756)) * -1)
+    (rank(ts_delta(IndNeutralize(((c * 0.60733) + (o * (1 - 0.60733))), sector), 1.23438)) < 
+    rank(ts_corr(ts_rank(vwap, 3.60973), ts_rank(adv150, 9.18637), 14.6644)))
     """
-    pass
+    sector_neutralized = ind_neutralize((c * 0.60733) + (o * (1 - 0.60733)), sector)
+    delta_term = rank(ts_delta(sector_neutralized, 1.23438))
+    
+    vwap_ranked = ts_rank(vwap, 3.60973)
+    adv150_ranked = ts_rank(adv150, 9.18637)
+    corr_term = rank(ts_corr(vwap_ranked, adv150_ranked, 14.6644))
+    
+    return delta_term < corr_term
+
+
+def alpha080(o, h, adv10, sector):
+    """
+    ((power(rank(sign(ts_delta(IndNeutralize((o * 0.868128) + (h * (1 - 0.868128)), sector), 4.04545))),
+    ts_rank(ts_corr(h, adv10, 5.11456), 5.53756)) * -1)
+    """
+    sector_neutralized = ind_neutralize((o * 0.868128) + (h * (1 - 0.868128)), sector)
+    delta_signed = sign(ts_delta(sector_neutralized, 4.04545))
+    power_term = power(rank(delta_signed), ts_rank(ts_corr(h, adv10, 5.11456), 5.53756))
+    
+    return power_term * -1
 
 
 # In[ ]:

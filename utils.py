@@ -39,6 +39,46 @@ def optimize_dataframe(df):
 
 # df_optimized = optimize_dataframe(alphas_p.copy())
 
+import pandas as pd
+
+def CustomBackwardMultipleTimeSeriesCV(dataframe, train_period_length=63*3, \
+    test_period_length=63, lookahead=1, date_idx='date'):
+    """
+    Yields train and test indices for time series cross-validation.
+    Iterates over the data frame from the end to the beginning.
+    
+    Parameters:
+        dataframe: The data to be split.
+        train_period_length: The number of business days in the training set.
+        test_period_length: The number of business days in the validation set.
+        lookahead: The gap between training and validation sets.
+        date_idx: The name of the date index in the dataframe.
+    """
+    
+    unique_dates = dataframe.index.get_level_values(date_idx).unique()
+    end_date_idx = len(unique_dates)
+    
+    while end_date_idx > 0:
+        train_end = end_date_idx
+        train_start = train_end - train_period_length
+        
+        test_end = train_start - lookahead
+        test_start = max(test_end - test_period_length, 0)  # Ensure the index doesn't go negative
+        
+        if test_start == 0:
+            break  # Break the loop if the test set would start at the beginning of the data
+        
+        # Get the train and test date ranges
+        train_dates = unique_dates[train_start:train_end]
+        test_dates = unique_dates[test_start:test_end]
+        
+        train_idx = dataframe.index.get_level_values(date_idx).isin(train_dates)
+        test_idx = dataframe.index.get_level_values(date_idx).isin(test_dates)
+        
+        yield train_idx, test_idx
+        
+        end_date_idx = test_start - lookahead
+
 import gc
 import pandas as pd
 
@@ -104,3 +144,19 @@ def optimize_dataframe_new(df):
     gc.collect()
 
     return df_copy
+
+
+import sys
+
+def clear_large_vars(threshold_size_in_MB=100):
+    """
+    Clears variables that are above the specified threshold size.
+    
+    Parameters:
+    - threshold_size_in_MB (int): Size threshold in MB. Defaults to 100MB.
+    """
+    for var_name in list(globals().keys()):
+        size = sys.getsizeof(globals()[var_name]) / (1024 ** 2)  # Convert to MB
+        if size > threshold_size_in_MB:
+            print(f"Clearing {var_name}, Size: {size:.2f}MB")
+            del globals()[var_name]
