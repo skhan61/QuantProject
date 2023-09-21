@@ -160,3 +160,42 @@ def clear_large_vars(threshold_size_in_MB=100):
         if size > threshold_size_in_MB:
             print(f"Clearing {var_name}, Size: {size:.2f}MB")
             del globals()[var_name]
+
+
+
+import pandas as pd
+
+def save_to_hdf(dataframe, file_path, key_name_prefix, prefix_feature='feature_', prefix_target='target_'):
+    # Rename feature columns
+    feature_cols = [col for col in dataframe.columns if 'ret_fwd' not in col]
+    renamed_feature_cols = {
+        col: f"{prefix_feature}{col}" if not col.startswith(prefix_feature) else col
+        for col in feature_cols
+    }
+    
+    # Rename target columns
+    target_cols = [col for col in dataframe.columns if 'ret_fwd' in col]
+    renamed_target_cols = {
+        col: f"{prefix_target}{col}" if not col.startswith(prefix_target) else col
+        for col in target_cols
+    }
+    
+    # Apply the renaming
+    dataframe.rename(columns={**renamed_feature_cols, **renamed_target_cols}, inplace=True)
+
+    # Extract min and max dates
+    min_date = dataframe.index.get_level_values('date').min().strftime('%Y-%m-%d')
+    max_date = dataframe.index.get_level_values('date').max().strftime('%Y-%m-%d')
+
+    key_name = f'{key_name_prefix}_{min_date}_to_{max_date}'
+    # Save to HDF5
+    with pd.HDFStore(file_path, mode='a', complevel=9, complib='zlib') as store:
+        dataframe.to_hdf(store, key=key_name, format='table')
+    
+    print(f"Data saved to {file_path}")
+    print(f'key is: {key_name}')
+
+# # Example usage
+# FILE_PATH = "/home/sayem/Desktop/Project/data/dataset.h5"
+# KEY_NAME = 'your_key_here'
+# save_to_hdf(reduced_dataframe, FILE_PATH, KEY_NAME)
