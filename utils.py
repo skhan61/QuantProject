@@ -161,11 +161,11 @@ def clear_large_vars(threshold_size_in_MB=100):
             print(f"Clearing {var_name}, Size: {size:.2f}MB")
             del globals()[var_name]
 
-
-
 import pandas as pd
+from filelock import FileLock
 
-def save_to_hdf(dataframe, file_path, key_name_prefix, prefix_feature='feature_', prefix_target='target_'):
+def save_to_hdf(dataframe, file_path, \
+    key_name_prefix, prefix_feature='feature_', prefix_target='target_'):
     # Rename feature columns
     feature_cols = [col for col in dataframe.columns if 'ret_fwd' not in col]
     renamed_feature_cols = {
@@ -184,18 +184,21 @@ def save_to_hdf(dataframe, file_path, key_name_prefix, prefix_feature='feature_'
     dataframe.rename(columns={**renamed_feature_cols, **renamed_target_cols}, inplace=True)
 
     # Extract min and max dates
-    min_date = dataframe.index.get_level_values('date').min().strftime('%Y-%m-%d')
-    max_date = dataframe.index.get_level_values('date').max().strftime('%Y-%m-%d')
+    min_date = dataframe.index.get_level_values('date').min().strftime('%Y_%m_%d')
+    max_date = dataframe.index.get_level_values('date').max().strftime('%Y_%m_%d')
 
+    # Sanitize the key_name to be a valid Python identifier
     key_name = f'{key_name_prefix}_{min_date}_to_{max_date}'
-    # Save to HDF5
-    with pd.HDFStore(file_path, mode='a', complevel=9, complib='zlib') as store:
-        dataframe.to_hdf(store, key=key_name, format='table')
+    safe_key_name = key_name.replace('/', '_').replace('-', '_')  # Sanitize the key_name
+    lock_path = f"/tmp/{safe_key_name}.lock"
     
-    print(f"Data saved to {file_path}")
-    print(f'key is: {key_name}')
+    with FileLock(lock_path):
+        with pd.HDFStore(file_path, mode='a', complevel=9, complib='zlib') as store:
+            dataframe.to_hdf(store, key=safe_key_name, format='table')
 
-# # Example usage
-# FILE_PATH = "/home/sayem/Desktop/Project/data/dataset.h5"
-# KEY_NAME = 'your_key_here'
-# save_to_hdf(reduced_dataframe, FILE_PATH, KEY_NAME)
+    return safe_key_name
+
+
+
+
+
