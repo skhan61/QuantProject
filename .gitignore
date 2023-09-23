@@ -1,9 +1,10 @@
 # Ignore all files by default
 *
 
-# Whitelist only .py and .ipynb files
+# Whitelist only .py and .ipynb files, and other specified files/folders
 !*.py
 !*.ipynb
 !.gitignore
-!.sh
-!./Old
+!*.sh
+!./Old/
+!./Old/**
