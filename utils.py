@@ -161,44 +161,32 @@ def clear_large_vars(threshold_size_in_MB=100):
             print(f"Clearing {var_name}, Size: {size:.2f}MB")
             del globals()[var_name]
 
+
+
 import pandas as pd
-from filelock import FileLock
 
-def save_to_hdf(dataframe, file_path, \
-    key_name_prefix, prefix_feature='feature_', prefix_target='target_'):
-    # Rename feature columns
-    feature_cols = [col for col in dataframe.columns if 'ret_fwd' not in col]
-    renamed_feature_cols = {
-        col: f"{prefix_feature}{col}" if not col.startswith(prefix_feature) else col
-        for col in feature_cols
-    }
+def save_to_hdf(data, file_path, key_prefix):
+    """
+    Efficiently save data to an HDF5 file and return the key under which it's stored.
     
-    # Rename target columns
-    target_cols = [col for col in dataframe.columns if 'ret_fwd' in col]
-    renamed_target_cols = {
-        col: f"{prefix_target}{col}" if not col.startswith(prefix_target) else col
-        for col in target_cols
-    }
+    Parameters:
+    - data: The DataFrame you want to store.
+    - file_path: The path of the HDF5 file.
+    - key_prefix: Prefix for the key under which data will be stored.
     
-    # Apply the renaming
-    dataframe.rename(columns={**renamed_feature_cols, **renamed_target_cols}, inplace=True)
-
-    # Extract min and max dates
-    min_date = dataframe.index.get_level_values('date').min().strftime('%Y_%m_%d')
-    max_date = dataframe.index.get_level_values('date').max().strftime('%Y_%m_%d')
-
-    # Sanitize the key_name to be a valid Python identifier
-    key_name = f'{key_name_prefix}_{min_date}_to_{max_date}'
-    safe_key_name = key_name.replace('/', '_').replace('-', '_')  # Sanitize the key_name
-    lock_path = f"/tmp/{safe_key_name}.lock"
+    Returns:
+    - key: The key under which the data is stored in the HDF5 file.
+    """
+    # Extract the date range from the 'date' level of the multi-index
+    date_level_values = data.index.get_level_values('date')
+    start_date = date_level_values.min().strftime('%Y%m%d')
+    end_date = date_level_values.max().strftime('%Y%m%d')
     
-    with FileLock(lock_path):
-        with pd.HDFStore(file_path, mode='a', complevel=9, complib='zlib') as store:
-            dataframe.to_hdf(store, key=safe_key_name, format='table')
-
-    return safe_key_name
-
-
-
-
-
+    # Construct the key
+    key = f"{key_prefix}_{start_date}_{end_date}"
+    
+    # Use compression for efficient storage and append mode to not overwrite existing data
+    data.to_hdf(file_path, key=key, mode='a', \
+        complib='blosc', complevel=9, format='table')
+    
+    return key
