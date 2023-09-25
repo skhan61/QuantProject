@@ -1,15 +1,11 @@
+import os
+import tables
 import pandas as pd
 import numpy as np
 import dask.dataframe as dd
 from joblib import Parallel, delayed
+from numba import jit
 from utils import optimize_dataframe, save_to_hdf
-from numba import jit
-
-import pandas as pd
-import numpy as np
-from joblib import Parallel, delayed
-from utils import optimize_dataframe
-from numba import jit
 
 @jit(nopython=True)
 def compute_correlation(data1, data2):
@@ -25,6 +21,7 @@ def compute_correlation(data1, data2):
     else:
         return num / den
 
+
 def calculate_ic(dataframe, target_column, target_ranked, n_jobs=-1):
     features = [col for col in dataframe.columns.tolist() if col != target_column]
     correlations = Parallel(n_jobs=n_jobs)(
@@ -32,6 +29,7 @@ def calculate_ic(dataframe, target_column, target_ranked, n_jobs=-1):
     )
     ic_original = pd.Series(dict(zip(features, correlations))).sort_values(ascending=False)
     return ic_original
+
 
 def calculate_ic_batched(dataframe, target_column, batch_size=50, corr_threshold=0.5, n_jobs=-1):
     df_ranked = dataframe.rank()
@@ -62,7 +60,7 @@ def calculate_ic_batched(dataframe, target_column, batch_size=50, corr_threshold
                     dropped_features.add(feature)
 
     ic_reduced = ic_aggregated.drop(labels=dropped_features)
-    columns_to_include = ic_reduced.index.tolist() + [target_column, 'OPEN', 'HIGH', 'LOW', 'VOLUME', 'CLOSE']
+    columns_to_include = ic_reduced.index.tolist() + [target_column, 'open', 'high', 'low', 'volume', 'close']
     reduced_dataframe = dataframe[columns_to_include]
     selected_correlation_matrix = correlation_matrix.loc[ic_reduced.index, ic_reduced.index]
     
@@ -75,41 +73,24 @@ def preprocess_dataframe(df):
 
 
 def list_all_keys_in_h5(file_path):
-    """
-    Lists all the keys in an HDF5 file that start with 'YEAR'.
-    """
-    with tables.open_file(file_path, 'r') as f:
-        # Extract all the group names from the root node of the HDF5 file
-        # and filter only those that start with 'YEAR'
-        group_names = [group._v_name for group in f.root._f_list_nodes() if group._v_name.startswith('YEAR')]
-    return group_names
-
-
+    with pd.HDFStore(file_path) as store:
+        keys = [k for k in store.keys() if k.startswith('/data/YEAR')]
+    return keys
 
 import tables
 
 def find_key_for_date_range(start_date, end_date, file_path):
-    """
-    Reads the HDF5 file to find the key corresponding to the given date range.
-    """
-    with tables.open_file(file_path, 'r') as f:
-        # Extract all the group names from the root node of the HDF5 file
-        group_names = [group._v_name for group in f.root._f_list_nodes()]
-        
-        # Create a pattern based on provided dates (replacing hyphens with underscores)
-        pattern = f"YEAR_{start_date.replace('-', '_')}_to_{end_date.replace('-', '_')}"
-        
-        # Find the group that matches the pattern
-        for name in group_names:
-            if pattern in name:
-                return '/data/' + name
-        return None
+    pattern = f"/data/YEAR_{start_date.replace('-', '_')}_to_{end_date.replace('-', '_')}"
+    return pattern if pattern in list_all_keys_in_h5(file_path) else None
 
-def process_date_range(start_date, end_date, file_path="/home/sayem/Desktop/Project/data/dataset.h5"):
-    file_name = find_key_for_date_range(start_date, end_date, file_path)
+
+def process_data_using_key(file_name, \
+    file_path="/home/sayem/Desktop/Project/data/dataset.h5"):
+    # Check if the key is valid
     if not file_name:
-        print(f"No key found for the date range: {start_date} to {end_date}")
+        print(f"Invalid key provided: {file_name}")
         return
+    
     # Read the dataset using Dask
     data = dd.read_hdf(file_path, file_name)
     
@@ -125,8 +106,16 @@ def process_date_range(start_date, end_date, file_path="/home/sayem/Desktop/Proj
 
     del result
 
+    # Check for the TARGET column name in a case-insensitive manner
     TARGET = 'RET_FWD_FRAC_ORDER'
-    reduced_dataframe, selected_ics, selected_corr_matrix = calculate_ic_batched(data, TARGET, batch_size=100)
+    column_to_use = next((col for col in data.columns if col.lower() == TARGET.lower()), None)
+    
+    if not column_to_use:
+        print(f"Column {TARGET} or its lowercase version not found in dataframe.")
+        return
+
+    reduced_dataframe, selected_ics, \
+        selected_corr_matrix = calculate_ic_batched(data, column_to_use, batch_size=100)
 
     # Find and remove duplicate columns
     duplicated_cols = reduced_dataframe.columns[reduced_dataframe.columns.duplicated()].to_list()
@@ -137,24 +126,24 @@ def process_date_range(start_date, end_date, file_path="/home/sayem/Desktop/Proj
     del data
 
     # Save to HDF5
-    file_name_prefix = f'/data/ic_based_reduced_features_YEAR'
-    _ = save_to_hdf(reduced_dataframe, file_path, file_name_prefix)
-
+    file_name_prefix = f'/data/ic_based_reduced_features_YEAR'  # You might want to modify this if needed
+    key = save_to_hdf(reduced_dataframe, file_path, file_name_prefix)
+    print(f'Data saved in {key}\n')
 
 def main_process():
     file_path = "/home/sayem/Desktop/Project/data/dataset.h5"
     
-    # Fetch all keys that start with 'YEAR' from the HDF5 file
+    if not os.path.exists(file_path):
+        print(f"File '{file_path}' does not exist.")
+        return
+
     year_keys = list_all_keys_in_h5(file_path)
-    
-    # Extract start and end dates from the key names
-    start_dates = [key.split("_")[1].replace('_', '-') for key in year_keys]
-    end_dates = [key.split("_")[3].replace('_', '-') for key in year_keys]
-    
-    for s_date, e_date in zip(start_dates, end_dates):
-        process_date_range(s_date, e_date)
+    # print(year_keys)
 
-# Call the main processing function
-main_process()
+    # Process each key
+    for key in year_keys:
+        print(f"Processing data for key: {key}")
+        process_data_using_key(key, file_path)
 
-
+if __name__ == "__main__":
+    main_process()

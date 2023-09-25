@@ -13,7 +13,13 @@ def optimize_dataframe(df):
     
     # Convert float64 to float32
     for col in df.select_dtypes(include=['float64']).columns:
-        df[col] = pd.to_numeric(df[col], downcast='float')
+        # Ensure the column values are within the range of float32 before downcasting
+        max_val = df[col].max()
+        min_val = df[col].min()
+        if (-3.4e38 <= min_val <= 3.4e38) and (-3.4e38 <= max_val <= 3.4e38):
+            df[col] = pd.to_numeric(df[col], downcast='float')
+        else:
+            print(f"Column '{col}' not downcasted to float32 due to its range.")
     
     # Convert int64 to int32 (or smaller)
     for col in df.select_dtypes(include=['int64']).columns:
@@ -188,5 +194,6 @@ def save_to_hdf(data, file_path, key_prefix):
     # Use compression for efficient storage and append mode to not overwrite existing data
     data.to_hdf(file_path, key=key, mode='a', \
         complib='blosc', complevel=9, format='table')
+    # print(f'Data saved in {key}\n')
     
     return key
