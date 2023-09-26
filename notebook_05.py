@@ -9,9 +9,7 @@ from filelock import FileLock
 def read_hdf_filtered_by_date(data_store, start_date, end_date, top=250):
     print("Reading data from HDF5...")
     lock_path = "/tmp/assets_h5_file.lock"
-
     with FileLock(lock_path):
-        # Use Dask to directly read the HDF5 files
         alpha_101_data = dd.read_hdf(data_store, key=f'factor/top{top}_dataset_alpha101').compute()
         ta_data = dd.read_hdf(data_store, key=f'factor/top{top}_dataset_with_TA').compute()
         beta_proxy_data = dd.read_hdf(data_store, key=f'factor/top{top}_dataset_with_rolling_beta_size_proxy').compute()
@@ -37,7 +35,7 @@ def read_hdf_filtered_by_date(data_store, start_date, end_date, top=250):
     return alpha_101_data, ta_data, beta_proxy_data
     
 
-def process_and_merge(alpha_101_data, common_data, chunk_size=100000):
+def process_and_merge(alpha_101_data, common_data, top, chunk_size=100000):
     print("Processing and merging data...")
     processed_data_list = []
     total_chunks = (common_data.shape[0] // chunk_size) + 1
@@ -95,10 +93,10 @@ def save_to_hdf(data, file_path, key_prefix):
     return key
 
 
-def main(data_store, file_path, start_date, end_date):
-    alpha_101_data, ta_data, beta_proxy_data = read_hdf_filtered_by_date(data_store, start_date, end_date)
+def main(data_store, file_path, start_date, end_date, top):
+    alpha_101_data, ta_data, beta_proxy_data = read_hdf_filtered_by_date(data_store, start_date, end_date, top)
     common_data = ta_data
-    final_data = process_and_merge(alpha_101_data, common_data)
+    final_data = process_and_merge(alpha_101_data, common_data, top)
     
     KEY_NAME_PREFIX = 'data/YEAR'
     key = save_to_hdf(final_data, file_path, KEY_NAME_PREFIX)
@@ -108,9 +106,18 @@ def main(data_store, file_path, start_date, end_date):
     print(f'key is: {key}')
 
 
+import sys
+
 if __name__ == "__main__":
+    # The first argument (sys.argv[0]) is always the script name itself.
+    if len(sys.argv) < 2:
+        print("Please provide the 'top' value as an argument.")
+        sys.exit(1)
+
+    top = int(sys.argv[1])
+    
     DATA_STORE = Path('/home/sayem/Desktop/Project/data/assets.h5')
-    FILE_PATH = "/home/sayem/Desktop/Project/data/dataset.h5"
+    FILE_PATH = f"/home/sayem/Desktop/Project/data/{top}_dataset.h5"
     
     FINAL_END_DATE = pd.Timestamp('2023-08-11')
     INITIAL_START_DATE = pd.Timestamp('2013-01-01')
@@ -120,7 +127,7 @@ if __name__ == "__main__":
     current_end_date = current_start_date + business_days_offset
 
     while current_end_date <= FINAL_END_DATE:
-        main(DATA_STORE, FILE_PATH, current_start_date, current_end_date)
+        main(DATA_STORE, FILE_PATH, current_start_date, current_end_date, top)
         
         # Update dates for next iteration
         current_start_date = current_end_date + pd.tseries.offsets.BDay(1)  # Start the next day
@@ -128,7 +135,7 @@ if __name__ == "__main__":
 
     # Process the remainder if any
     if current_start_date < FINAL_END_DATE:
-        main(DATA_STORE, FILE_PATH, current_start_date, FINAL_END_DATE)
+        main(DATA_STORE, FILE_PATH, current_start_date, FINAL_END_DATE, top)
 
 
 

@@ -130,8 +130,13 @@ def process_data_using_key(file_name, \
     key = save_to_hdf(reduced_dataframe, file_path, file_name_prefix)
     print(f'Data saved in {key}\n')
 
+
+import sys
+
 def main_process():
-    file_path = "/home/sayem/Desktop/Project/data/dataset.h5"
+    # The first argument (sys.argv[0]) is always the script name itself.
+    top = int(sys.argv[1])  # Capture the 'top' value passed as the first argument.
+    file_path = f"/home/sayem/Desktop/Project/data/{top}_dataset.h5"
     
     if not os.path.exists(file_path):
         print(f"File '{file_path}' does not exist.")
