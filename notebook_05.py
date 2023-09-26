@@ -35,6 +35,35 @@ def read_hdf_filtered_by_date(data_store, start_date, end_date, top=250):
     return alpha_101_data, ta_data, beta_proxy_data
     
 
+# def process_and_merge(alpha_101_data, common_data, top, chunk_size=100000):
+#     print("Processing and merging data...")
+#     processed_data_list = []
+#     total_chunks = (common_data.shape[0] // chunk_size) + 1
+    
+#     for idx, start in enumerate(range(0, common_data.shape[0], chunk_size)):
+#         print(f"Processing chunk {idx + 1} of {total_chunks}...")
+#         end = start + chunk_size
+#         common_data_chunk = common_data.iloc[start:end]
+        
+#         tickers_in_chunk = common_data_chunk.index.get_level_values('ticker').unique()
+#         dates_in_chunk = common_data_chunk.index.get_level_values('date').unique()
+
+#         filtered_alpha_101_data = alpha_101_data[
+#             alpha_101_data.index.get_level_values('ticker').isin(tickers_in_chunk) &
+#             alpha_101_data.index.get_level_values('date').isin(dates_in_chunk)
+#         ]
+
+#         merged_chunk = common_data_chunk.merge(
+#             filtered_alpha_101_data, left_index=True, right_index=True, how='inner', suffixes=('', '_y')
+#         )
+#         merged_chunk = merged_chunk.drop(columns=[col for col in merged_chunk if col.endswith(('_y', '_x'))])
+        
+#         processed_data_list.append(merged_chunk)
+    
+#     final_data = pd.concat(processed_data_list)
+#     print("Processing and merging completed.")
+#     return final_data
+
 def process_and_merge(alpha_101_data, common_data, top, chunk_size=100000):
     print("Processing and merging data...")
     processed_data_list = []
@@ -56,13 +85,26 @@ def process_and_merge(alpha_101_data, common_data, top, chunk_size=100000):
         merged_chunk = common_data_chunk.merge(
             filtered_alpha_101_data, left_index=True, right_index=True, how='inner', suffixes=('', '_y')
         )
+        
+        # Drop columns with unwanted suffixes
         merged_chunk = merged_chunk.drop(columns=[col for col in merged_chunk if col.endswith(('_y', '_x'))])
+        
+        # Add "FEATURE_" prefix to columns that don't start with 'ret_fwd_'
+        feature_cols = [col for col in merged_chunk.columns if not col.startswith('ret_fwd_')]
+        rename_dict_feature = {col: f'FEATURE_{col}' for col in feature_cols}
+        merged_chunk.rename(columns=rename_dict_feature, inplace=True)
+        
+        # Add "TARGET_" prefix to columns that start with 'ret_fwd_'
+        target_cols = [col for col in merged_chunk.columns if col.startswith('ret_fwd_')]
+        rename_dict_target = {col: f'TARGET_{col}' for col in target_cols}
+        merged_chunk.rename(columns=rename_dict_target, inplace=True)
         
         processed_data_list.append(merged_chunk)
     
     final_data = pd.concat(processed_data_list)
     print("Processing and merging completed.")
     return final_data
+
 
 import pandas as pd
 
