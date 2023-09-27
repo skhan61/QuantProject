@@ -17,12 +17,23 @@ def compute_correlation(data1, data2):
     return num / den if den != 0 else np.nan
 
 
+# def calculate_ic(dataframe, target_column, target_ranked, n_jobs=-1):
+#     features = [col for col in dataframe.columns if col != target_column]
+#     correlations = Parallel(n_jobs=n_jobs)(
+#         delayed(compute_correlation)(dataframe[column].values, target_ranked) for column in features
+#     )
+#     return pd.Series(dict(zip(features, correlations))).sort_values(ascending=False)
+
 def calculate_ic(dataframe, target_column, target_ranked, n_jobs=-1):
-    features = [col for col in dataframe.columns if col != target_column]
+    # Exclude the target column from the feature list
+    features = [col for col in dataframe.columns.tolist() if col != target_column]
     correlations = Parallel(n_jobs=n_jobs)(
         delayed(compute_correlation)(dataframe[column].values, target_ranked) for column in features
     )
-    return pd.Series(dict(zip(features, correlations))).sort_values(ascending=False)
+    
+    # Explicitly specifying dtype=float64 for the Series
+    return pd.Series(dict(zip(features, correlations)), dtype=float).sort_values(ascending=False)
+
 
 
 def calculate_ic_batched(dataframe, target_column, batch_size=50, corr_threshold=0.5, n_jobs=-1):
