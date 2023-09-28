@@ -1,7 +1,7 @@
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/skhan61/QuantProject.git/main)
 
 # Trading Strategy Development: An ML-Driven Approach
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/skhan61/QuantProject.git/main)
+
 Welcome to the Trading Strategy Project. This repository unfolds a comprehensive end-to-end Machine Learning and Deep Learning framework dedicated to the creation of intricate trading strategies. With the combined prowess of data science and innovative algorithms, we walk you through a detailed pipeline that spans from the initial stages of data processing to the meticulous act of strategy backtesting. Explore and immerse yourself in the contemporary advances of trading methodologies.
 
 ## Project Pipeline:
