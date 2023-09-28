@@ -71,3 +71,4 @@ For seamless integration and collaboration, our repository adheres to certain `.
 !*.sh
 !./Old/
 !./Old/** 
+!.yml
