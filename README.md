@@ -1,51 +1,64 @@
 # Trading Strategy Development: An ML-Driven Approach
 
-Welcome to the Trading Strategy Project. This repository showcases an end-to-end Machine Learning and Deep Learning driven approach for crafting sophisticated trading strategies. By leveraging the power of data science and advanced algorithms, we guide you through the intricate pipeline, starting from initial data processing all the way to comprehensive strategy backtesting. Dive in and experience the modern evolution of trading techniques.
+Welcome to the Trading Strategy Project. This repository unfolds a comprehensive end-to-end Machine Learning and Deep Learning framework dedicated to the creation of intricate trading strategies. With the combined prowess of data science and innovative algorithms, we walk you through a detailed pipeline that spans from the initial stages of data processing to the meticulous act of strategy backtesting. Explore and immerse yourself in the contemporary advances of trading methodologies.
 
-Data Processing ---> Sample Selection ---> Factor Research ---> Feature Engineering ---> Dataset Building ---> ML/DL Model Training ---> Strategy Backtesting ---> Deployment
+## Project Pipeline:
 
-## Directory Structure
+`Data Processing` ---> `Sample Selection` ---> `Factor Research` ---> `Feature Engineering & Dataset Building` ---> `ML/DL Model Training` ---> `Strategy Backtesting` ---> `Deployment`
 
-### Data
-Contains raw OHLCV data and processed datasets used across the notebooks.
+## Codes and Notebooks:
 
-### Codes and Notebooks (in root directory)
+Contained within each stage of the pipeline are meticulously crafted notebooks that delve into the details of each step. A breakdown is provided below:
 
-1. **01_raw_data_to_create_dataset.ipynb**: Processing raw data to create a structured dataset.
-2. **02_sample_selection.ipynb**: Techniques and logic behind selecting the right data samples.
-3. **03_common_alpha_factors.ipynb**: Investigating common alpha factors in finance.
-4. **04_101_formulaic_alphas.ipynb**: Deriving alphas using predefined formulae.
-5. **05_dataset_building.ipynb**: Crafting the dataset suitable for ML modeling.
-6. **06_ic_based_feature_selection.ipynb**: Feature selection based on Information Coefficient (IC).
-7. **07_a_ML_models_forecasting.ipynb**: Training and evaluating machine learning forecasting models.
-8. **07_b_DL_models_forecasting.ipynb**: Delving deep with deep learning models for forecasting.
-9. **07_c_DL_models_generative.ipynb**: Generative models using deep learning.
-10. **08_strategy_building_and_backtesting.ipynb**: The culmination - building and backtesting the trading strategy.
-11. **formulaic_alphas.py**: Python script with formulae for deriving alphas.
-12. **notebook_05.py, notebook_06.py**: Python scripts corresponding to specific notebooks.
-13. **top_mlflow_experiment.py**: MLflow experiment tracking script.
-14. **top_stock_dataset_pipeline.py**: Data pipeline script for stock datasets.
-15. **utils.py**: Utility functions and common operations used across the project.
-16. **auto_commit.sh, push_to_dockerhub.sh**: Automation scripts for repository management.
+### Data Processing
+- [01_raw_data_to_create_dataset.ipynb](01_raw_data_to_create_dataset.ipynb): Transforming raw data into a cohesive dataset structure.
+
+### Sample Selection
+- [02_sample_selection.ipynb](02_sample_selection.ipynb): Insights and techniques for optimal data sample selection.
+
+### Factor Research and Feature Engineering
+- [03_common_alpha_factors.ipynb](03_common_alpha_factors.ipynb): An exploration into the prevalent alpha factors in finance.
+- [04_101_formulaic_alphas.ipynb](04_101_formulaic_alphas.ipynb): Constructing alphas from predefined formulae.
+
+### Dataset Building and Pre-modeling Feature Selection
+- [05_dataset_building.ipynb](05_dataset_building.ipynb): Streamlining the dataset for machine learning applications.
+- [06_ic_based_feature_selection.ipynb](06_ic_based_feature_selection.ipynb): Harnessing the Information Coefficient (IC) for effective feature selection.
+
+### ML/DL Model Training
+- [07_a_ML_models_forecasting.ipynb](07_a_ML_models_forecasting.ipynb): Diving into machine learning models for precise forecasting.
+- [07_b_DL_models_forecasting.ipynb](07_b_DL_models_forecasting.ipynb): A deep dive into the world of deep learning forecasting models.
+- [07_c_DL_models_generative.ipynb](07_c_DL_models_generative.ipynb): Leveraging deep learning for generative model constructs.
+
+### Strategy Backtesting
+- [08_strategy_building_and_backtesting.ipynb](08_strategy_building_and_backtesting.ipynb): The apex - constructing and assessing the trading strategy.
+
+### Additional Resources:
+- [formulaic_alphas.py](formulaic_alphas.py): An array of formulae dedicated to alpha derivation.
+- [notebook_05.py](notebook_05.py), [notebook_06.py](notebook_06.py): Scripts complementing specific notebooks.
+- [top_mlflow_experiment.py](top_mlflow_experiment.py): Script for MLflow experiment tracking.
+- [top_stock_dataset_pipeline.py](top_stock_dataset_pipeline.py): Scripted pipeline for stock dataset management.
+- [utils.py](utils.py): A collection of utility functions and procedures for project-wide use.
+- [auto_commit.sh](auto_commit.sh), [push_to_dockerhub.sh](push_to_dockerhub.sh): Automation scripts enhancing repository management.
 
 ### Old (Archived)
 
-Contains older versions or deprecated files.
+This section houses deprecated versions or previously used files, preserved for reference.
 
-## .gitignore Rules
+## Repository Configuration:
 
-The repository follows specific gitignore rules:
+For seamless integration and collaboration, our repository adheres to certain `.gitignore` rules:
 
 ```plaintext
-# Ignore all files by default
+# Default rule - ignore all files
 *
+# Exclude credential files and output notebooks
 *_creds.txt
 ./output_notebook/**
 
-# Whitelist only .py and .ipynb files, and other specified files/folders
+# Explicitly allow only .py, .ipynb, and a few other specified files/folders
 !*.py
 !*.ipynb
 !.gitignore
 !*.sh
 !./Old/
-!./Old/**
+!./Old/** 
