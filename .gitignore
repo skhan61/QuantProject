@@ -1,6 +1,7 @@
 # Ignore all files by default
 *
 *_creds.txt
+./cnn
 ./output_notebook/**
 # Whitelist only .py and .ipynb files, and other specified files/folders
 !*.py
