@@ -205,19 +205,21 @@ def save_to_hdf(data, file_path, key_prefix):
 import pandas as pd
 import numpy as np
 
-def rank_and_quantize(df, TARGET_col='TARGET_ret_fwd_frac_order'):
+def rank_stocks_and_quantile(df, TARGET_col='TARGET_ret_fwd_frac_order'):
     """
-    Ranks stocks within each date based on the specified TARGET column and then bucket them into quantiles.
+    Ranks stocks within each date based on the specified TARGET column 
+    and then bucket them into quantiles.
     
     Parameters:
         df (pd.DataFrame): Input dataframe with MultiIndex (date, ticker).
         TARGET_col (str): Column name based on which the ranking needs to be done.
     
     Returns:
-        pd.DataFrame: Dataframe with original column, an additional column for ranks, and quantized values.
+        pd.DataFrame: Dataframe with original column, an additional column for ranks, 
+                      and quantized values.
     """
     rank_col_name = TARGET_col + '_rank'
-    quant_col_name = TARGET_col + '_quantiled'
+    quant_col_name = rank_col_name + '_quantiled'
     
     # Ranking stocks within each date so that the highest value gets rank 1 (considered best)
     df[rank_col_name] = df.groupby('date')[TARGET_col].rank(method="average", ascending=False).astype(int) # Change to descending
@@ -227,6 +229,6 @@ def rank_and_quantize(df, TARGET_col='TARGET_ret_fwd_frac_order'):
     df[quant_col_name] = pd.qcut(df[rank_col_name], q=5, labels=quantile_labels).astype(float)
     
     # # Sorting by MultiIndex levels to preserve the original structure
-    # df.sort_index(level=['date', 'ticker'], ascending=[True, True], inplace=True)
+    df.sort_index(level=['date', 'ticker'], ascending=[True, True], inplace=True)
     
     return df

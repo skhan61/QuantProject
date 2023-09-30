@@ -135,17 +135,47 @@ def save_to_hdf(data, file_path, key_prefix):
     return key
 
 
+# def main(data_store, file_path, start_date, end_date, top):
+#     alpha_101_data, ta_data, beta_proxy_data = read_hdf_filtered_by_date(data_store, start_date, end_date, top)
+#     common_data = ta_data
+#     final_data = process_and_merge(alpha_101_data, common_data, top)
+    
+#     KEY_NAME_PREFIX = 'data/YEAR'
+#     key = save_to_hdf(final_data, file_path, KEY_NAME_PREFIX)
+
+#     print(f"Shape of the final combined data: {final_data.shape}")
+#     print("Processing completed.")
+#     print(f'key is: {key}')
+
 def main(data_store, file_path, start_date, end_date, top):
-    alpha_101_data, ta_data, beta_proxy_data = read_hdf_filtered_by_date(data_store, start_date, end_date, top)
+    alpha_101_data, ta_data, beta_proxy_data \
+        = read_hdf_filtered_by_date(data_store, start_date, end_date, top)
     common_data = ta_data
     final_data = process_and_merge(alpha_101_data, common_data, top)
     
+    # Swap levels if needed
+    if final_data.index.names[0] == 'ticker':
+        final_data = final_data.swaplevel('ticker', 'date')
+
+    # Sort the dataset by date and then ticker
+    final_data.sort_index(level=['date', 'ticker'], ascending=[True, True], inplace=True)
+    
+        # Check and localize the datetime level of the MultiIndex to UTC if needed
+    datetime_level = 0  # Assuming the datetime is the first level
+    if final_data.index.levels[datetime_level].tz is None:
+        localized_level = final_data.index.levels[datetime_level].tz_localize('UTC')
+        final_data.index = final_data.index.set_levels(localized_level, level=datetime_level)
+        
+        
+    # print(final_data.head())
+
     KEY_NAME_PREFIX = 'data/YEAR'
     key = save_to_hdf(final_data, file_path, KEY_NAME_PREFIX)
 
     print(f"Shape of the final combined data: {final_data.shape}")
     print("Processing completed.")
     print(f'key is: {key}')
+
 
 
 import sys

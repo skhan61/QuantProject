@@ -23,38 +23,45 @@ warnings.filterwarnings("always", category=UserWarning, module=".*debugpy.*")
 warnings.filterwarnings(action="ignore", category=UserWarning, module=".*debugpy.*", lineno=0)
 warnings.filterwarnings(action="ignore", category=DeprecationWarning, module=".*traitlets.*", lineno=0)
 
-# # Define the top values
-# top_values = [250, 500]
-top_values = [500]
-# File paths
+import sys
+
+# Check if at least one argument is passed (not counting the script name)
+if len(sys.argv) < 2:
+    print("Please provide at least one 'top' value as an argument.")
+    sys.exit(1)
+
+# Convert the arguments to integers and store them in the top_values list
+top_values = [int(value) for value in sys.argv[1:]]
+
+
 data_path = "/home/sayem/Desktop/Project/data/"
 
 # Loop through each top value
 for top in top_values:
     print(f"=== Running for top value: {top} ===")
     
-    # Execute notebooks with papermill
-    try:
-        pm.execute_notebook(
-           '02_sample_selection.ipynb',
-           '/dev/null',
-           parameters={'top': top}
-        )
+    # # Execute notebooks with papermill
+    # try:
+    #     pm.execute_notebook(
+    #        '02_sample_selection.ipynb',
+    #        '/dev/null',
+    #        parameters={'top': top}
+    #     )
         
-        pm.execute_notebook(
-           '03_common_alpha_factors.ipynb',
-           '/dev/null',
-           parameters={'top': top}
-        )
+    #     pm.execute_notebook(
+    #        '03_common_alpha_factors.ipynb',
+    #        '/dev/null',
+    #        parameters={'top': top}
+    #     )
 
-        pm.execute_notebook(
-           '04_101_formulaic_alphas.ipynb',
-           '/dev/null',
-           parameters={'top': top}
-        )
+    #     pm.execute_notebook(
+    #        '04_101_formulaic_alphas.ipynb',
+    #        '/dev/null',
+    #        parameters={'top': top}
+    #     )
         
-    except pm.PapermillExecutionError as e:
-        logging.error(f"Error while executing notebook: {str(e)}")
+    # except pm.PapermillExecutionError as e:
+    #     logging.error(f"Error while executing notebook: {str(e)}")
     
     # Execute Python scripts
     result_05 = os.system(f"python notebook_05.py {top}")
@@ -91,6 +98,4 @@ print("All tasks completed!")
     #     logging.warning(f"Warning: {os.path.join(data_path, 'dataset.h5')} does not exist and cannot be renamed.")
 
 # print("All tasks completed!")
-
-
 
