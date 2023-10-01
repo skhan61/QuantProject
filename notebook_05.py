@@ -35,34 +35,6 @@ def read_hdf_filtered_by_date(data_store, start_date, end_date, top=250):
     return alpha_101_data, ta_data, beta_proxy_data
     
 
-# def process_and_merge(alpha_101_data, common_data, top, chunk_size=100000):
-#     print("Processing and merging data...")
-#     processed_data_list = []
-#     total_chunks = (common_data.shape[0] // chunk_size) + 1
-    
-#     for idx, start in enumerate(range(0, common_data.shape[0], chunk_size)):
-#         print(f"Processing chunk {idx + 1} of {total_chunks}...")
-#         end = start + chunk_size
-#         common_data_chunk = common_data.iloc[start:end]
-        
-#         tickers_in_chunk = common_data_chunk.index.get_level_values('ticker').unique()
-#         dates_in_chunk = common_data_chunk.index.get_level_values('date').unique()
-
-#         filtered_alpha_101_data = alpha_101_data[
-#             alpha_101_data.index.get_level_values('ticker').isin(tickers_in_chunk) &
-#             alpha_101_data.index.get_level_values('date').isin(dates_in_chunk)
-#         ]
-
-#         merged_chunk = common_data_chunk.merge(
-#             filtered_alpha_101_data, left_index=True, right_index=True, how='inner', suffixes=('', '_y')
-#         )
-#         merged_chunk = merged_chunk.drop(columns=[col for col in merged_chunk if col.endswith(('_y', '_x'))])
-        
-#         processed_data_list.append(merged_chunk)
-    
-#     final_data = pd.concat(processed_data_list)
-#     print("Processing and merging completed.")
-#     return final_data
 
 def process_and_merge(alpha_101_data, common_data, top, chunk_size=100000):
     print("Processing and merging data...")
@@ -105,47 +77,8 @@ def process_and_merge(alpha_101_data, common_data, top, chunk_size=100000):
     print("Processing and merging completed.")
     return final_data
 
+from utils import save_to_hdf
 
-import pandas as pd
-
-def save_to_hdf(data, file_path, key_prefix):
-    """
-    Efficiently save data to an HDF5 file and return the key under which it's stored.
-    
-    Parameters:
-    - data: The DataFrame you want to store.
-    - file_path: The path of the HDF5 file.
-    - key_prefix: Prefix for the key under which data will be stored.
-    
-    Returns:
-    - key: The key under which the data is stored in the HDF5 file.
-    """
-    # Extract the date range from the 'date' level of the multi-index
-    date_level_values = data.index.get_level_values('date')
-    start_date = date_level_values.min().strftime('%Y%m%d')
-    end_date = date_level_values.max().strftime('%Y%m%d')
-    
-    # Construct the key
-    key = f"{key_prefix}_{start_date}_{end_date}"
-    
-    # Use compression for efficient storage and append mode to not overwrite existing data
-    data.to_hdf(file_path, key=key, mode='a', \
-        complib='blosc', complevel=9, format='table')
-    
-    return key
-
-
-# def main(data_store, file_path, start_date, end_date, top):
-#     alpha_101_data, ta_data, beta_proxy_data = read_hdf_filtered_by_date(data_store, start_date, end_date, top)
-#     common_data = ta_data
-#     final_data = process_and_merge(alpha_101_data, common_data, top)
-    
-#     KEY_NAME_PREFIX = 'data/YEAR'
-#     key = save_to_hdf(final_data, file_path, KEY_NAME_PREFIX)
-
-#     print(f"Shape of the final combined data: {final_data.shape}")
-#     print("Processing completed.")
-#     print(f'key is: {key}')
 
 def main(data_store, file_path, start_date, end_date, top):
     alpha_101_data, ta_data, beta_proxy_data \
@@ -177,16 +110,23 @@ def main(data_store, file_path, start_date, end_date, top):
     print(f'key is: {key}')
 
 
-def get_max_date_from_store(path):
-    """Load a small chunk of data and retrieve the max date."""
+def get_min_max_dates_from_store(path):
+    """Load chunks of data and retrieve the min and max dates."""
     with pd.HDFStore(path) as store:
-        # Load a small chunk
-        chunk = store.select('/stooq/us/nyse/stocks/prices', start=-10)  # Last 10 records
-        max_date = chunk.index.get_level_values(1).max()
-    return max_date
+        # Load an initial chunk to get the minimum date
+        start_chunk = store.select('/stooq/us/nyse/stocks/prices', start=0, stop=10)
+        min_date = start_chunk.index.get_level_values(1).min()
+
+        # Load a chunk from the end to get the maximum date
+        end_chunk = store.select('/stooq/us/nyse/stocks/prices', start=-10)
+        max_date = end_chunk.index.get_level_values(1).max()
+
+    return min_date, max_date
 
 
 import sys
+from pathlib import Path
+import pandas as pd
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -196,36 +136,26 @@ if __name__ == "__main__":
     top = int(sys.argv[1])
     DATA_STORE = Path('/home/sayem/Desktop/Project/data/assets.h5')
     
-    # Get the maximum date from DATA_STORE
-    max_date_in_store = get_max_date_from_store(DATA_STORE)
+    # Get the min and max dates from DATA_STORE
+    min_date_in_store, max_date_in_store = get_min_max_dates_from_store(DATA_STORE)
 
     # For the unseen dataset
     FINAL_UNSEEN = max_date_in_store.strftime('%Y-%m-%d')
     INITIAL_UNSEEN = (max_date_in_store - pd.DateOffset(years=1)).strftime('%Y-%m-%d')
     FILE_PATH_UNSEEN = f"/home/sayem/Desktop/Project/data/{top}_unseen_dataset.h5"
 
-    business_days_offset = pd.tseries.offsets.BDay(2 * 252)
-
-    current_start_date = pd.Timestamp(INITIAL_UNSEEN)
-    current_end_date = pd.Timestamp(FINAL_UNSEEN)
-    
-    while current_end_date <= pd.Timestamp(FINAL_UNSEEN):
-        main(DATA_STORE, FILE_PATH_UNSEEN, current_start_date, current_end_date, top)
-        
-        # Update dates for next iteration
-        current_start_date = current_end_date + pd.tseries.offsets.BDay(1)
-        current_end_date = current_start_date + business_days_offset
+    main(DATA_STORE, FILE_PATH_UNSEEN, INITIAL_UNSEEN, FINAL_UNSEEN, top)
 
     # For the regular dataset
-    # Initialize INITIAL to the start date of your dataset (assuming it's the minimum date in your dataset)
-    INITIAL = pd.Timestamp('1970-01-01')  # This is just a placeholder. Replace with your actual start date.
-    FINAL = INITIAL_UNSEEN  # Start the regular dataset just before the unseen dataset
+    INITIAL = min_date_in_store
+    FINAL = (pd.Timestamp(INITIAL_UNSEEN) - pd.tseries.offsets.BDay(1)).strftime('%Y-%m-%d')
     FILE_PATH = f"/home/sayem/Desktop/Project/data/{top}_dataset.h5"
 
+    business_days_offset = pd.tseries.offsets.BDay(2 * 252)
     current_start_date = pd.Timestamp(INITIAL)
     current_end_date = current_start_date + business_days_offset
 
-    while current_end_date < pd.Timestamp(FINAL_UNSEEN):
+    while current_end_date < pd.Timestamp(INITIAL_UNSEEN):
         main(DATA_STORE, FILE_PATH, current_start_date, current_end_date, top)
         
         # Update dates for next iteration
@@ -233,10 +163,60 @@ if __name__ == "__main__":
         current_end_date = current_start_date + business_days_offset
 
     # Process the remainder if any
-    if current_start_date < pd.Timestamp(FINAL_UNSEEN):
-        main(DATA_STORE, FILE_PATH, current_start_date, pd.Timestamp(FINAL_UNSEEN) - pd.tseries.offsets.BDay(1), top)
+    if current_start_date < pd.Timestamp(INITIAL_UNSEEN):
+        main(DATA_STORE, FILE_PATH, current_start_date, pd.Timestamp(INITIAL_UNSEEN) - pd.tseries.offsets.BDay(1), top)
 
 
+# import sys
+# from pathlib import Path
+# import pandas as pd
+
+# if __name__ == "__main__":
+#     if len(sys.argv) < 2:
+#         print("Please provide the 'top' value as an argument.")
+#         sys.exit(1)
+
+#     top = int(sys.argv[1])
+#     DATA_STORE = Path('/home/sayem/Desktop/Project/data/assets.h5')
+    
+#     # Get the min and max dates from DATA_STORE
+#     min_date_in_store, max_date_in_store = get_min_max_dates_from_store(DATA_STORE)
+
+#     # For the unseen dataset
+#     FINAL_UNSEEN = max_date_in_store.strftime('%Y-%m-%d')
+#     INITIAL_UNSEEN = (max_date_in_store - pd.DateOffset(years=1)).strftime('%Y-%m-%d')
+#     FILE_PATH_UNSEEN = f"/home/sayem/Desktop/Project/data/{top}_unseen_dataset.h5"
+
+#     business_days_offset = pd.tseries.offsets.BDay(2 * 252)
+
+#     current_start_date = pd.Timestamp(INITIAL_UNSEEN)
+#     current_end_date = pd.Timestamp(FINAL_UNSEEN)
+    
+#     while current_end_date <= pd.Timestamp(FINAL_UNSEEN):
+#         main(DATA_STORE, FILE_PATH_UNSEEN, current_start_date, current_end_date, top)
+        
+#         # Update dates for next iteration
+#         current_start_date = current_end_date + pd.tseries.offsets.BDay(1)
+#         current_end_date = current_start_date + business_days_offset
+
+#     # For the regular dataset
+#     INITIAL = min_date_in_store  # No more placeholder
+#     FINAL = INITIAL_UNSEEN  # Start the regular dataset just before the unseen dataset
+#     FILE_PATH = f"/home/sayem/Desktop/Project/data/{top}_dataset.h5"
+
+#     current_start_date = pd.Timestamp(INITIAL)
+#     current_end_date = current_start_date + business_days_offset
+
+#     while current_end_date < pd.Timestamp(FINAL_UNSEEN):
+#         main(DATA_STORE, FILE_PATH, current_start_date, current_end_date, top)
+        
+#         # Update dates for next iteration
+#         current_start_date = current_end_date + pd.tseries.offsets.BDay(1)
+#         current_end_date = current_start_date + business_days_offset
+
+#     # Process the remainder if any
+#     if current_start_date < pd.Timestamp(FINAL_UNSEEN):
+#         main(DATA_STORE, FILE_PATH, current_start_date, pd.Timestamp(FINAL_UNSEEN) - pd.tseries.offsets.BDay(1), top)
 
 # import sys
 
