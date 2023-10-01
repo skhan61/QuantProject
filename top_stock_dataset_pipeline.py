@@ -40,28 +40,28 @@ data_path = "/home/sayem/Desktop/Project/data/"
 for top in top_values:
     print(f"=== Running for top value: {top} ===")
     
-    # # Execute notebooks with papermill
-    # try:
-    #     pm.execute_notebook(
-    #        '02_sample_selection.ipynb',
-    #        '/dev/null',
-    #        parameters={'top': top}
-    #     )
+    # Execute notebooks with papermill
+    try:
+        pm.execute_notebook(
+           '02_sample_selection.ipynb',
+           '/dev/null',
+           parameters={'top': top}
+        )
         
-    #     pm.execute_notebook(
-    #        '03_common_alpha_factors.ipynb',
-    #        '/dev/null',
-    #        parameters={'top': top}
-    #     )
+        pm.execute_notebook(
+           '03_common_alpha_factors.ipynb',
+           '/dev/null',
+           parameters={'top': top}
+        )
 
-    #     pm.execute_notebook(
-    #        '04_101_formulaic_alphas.ipynb',
-    #        '/dev/null',
-    #        parameters={'top': top}
-    #     )
+        pm.execute_notebook(
+           '04_101_formulaic_alphas.ipynb',
+           '/dev/null',
+           parameters={'top': top}
+        )
         
-    # except pm.PapermillExecutionError as e:
-    #     logging.error(f"Error while executing notebook: {str(e)}")
+    except pm.PapermillExecutionError as e:
+        logging.error(f"Error while executing notebook: {str(e)}")
     
     # Execute Python scripts
     result_05 = os.system(f"python notebook_05.py {top}")
@@ -69,21 +69,21 @@ for top in top_values:
         logging.error(f"Error while executing notebook_05.py with top value {top}")
 
 
-    # Execute notebooks with papermill
-    # try:
+    # # Execute notebooks with papermill
+    # # try:
 
-    #     pm.execute_notebook(
-    #        '06_ic_based_feature_selection.ipynb',
-    #        '/dev/null',
-    #        parameters={'top': top}
-    #     )
+    # #     pm.execute_notebook(
+    # #        '06_ic_based_feature_selection.ipynb',
+    # #        '/dev/null',
+    # #        parameters={'top': top}
+    # #     )
         
-    # except pm.PapermillExecutionError as e:
-    #     logging.error(f"Error while executing notebook: {str(e)}")
+    # # except pm.PapermillExecutionError as e:
+    # #     logging.error(f"Error while executing notebook: {str(e)}")
         
-    result_06 = os.system(f"python notebook_06.py {top}")
-    if result_06 != 0:
-        logging.error(f"Error while executing notebook_06.py with top value {top}")
+    # result_06 = os.system(f"python notebook_06.py {top}")
+    # if result_06 != 0:
+    #     logging.error(f"Error while executing notebook_06.py with top value {top}")
 
 print("All tasks completed!")
 

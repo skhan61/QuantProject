@@ -177,37 +177,100 @@ def main(data_store, file_path, start_date, end_date, top):
     print(f'key is: {key}')
 
 
+def get_max_date_from_store(path):
+    """Load a small chunk of data and retrieve the max date."""
+    with pd.HDFStore(path) as store:
+        # Load a small chunk
+        chunk = store.select('/stooq/us/nyse/stocks/prices', start=-10)  # Last 10 records
+        max_date = chunk.index.get_level_values(1).max()
+    return max_date
+
 
 import sys
 
 if __name__ == "__main__":
-    # The first argument (sys.argv[0]) is always the script name itself.
     if len(sys.argv) < 2:
         print("Please provide the 'top' value as an argument.")
         sys.exit(1)
 
     top = int(sys.argv[1])
-    
     DATA_STORE = Path('/home/sayem/Desktop/Project/data/assets.h5')
-    FILE_PATH = f"/home/sayem/Desktop/Project/data/{top}_dataset.h5"
     
-    FINAL_END_DATE = pd.Timestamp('2023-08-11')
-    INITIAL_START_DATE = pd.Timestamp('2013-01-01')
-    business_days_offset = pd.tseries.offsets.BDay(2 * 252)  # Approximation for 2 business years
+    # Get the maximum date from DATA_STORE
+    max_date_in_store = get_max_date_from_store(DATA_STORE)
 
-    current_start_date = INITIAL_START_DATE
+    # For the unseen dataset
+    FINAL_UNSEEN = max_date_in_store.strftime('%Y-%m-%d')
+    INITIAL_UNSEEN = (max_date_in_store - pd.DateOffset(years=1)).strftime('%Y-%m-%d')
+    FILE_PATH_UNSEEN = f"/home/sayem/Desktop/Project/data/{top}_unseen_dataset.h5"
+
+    business_days_offset = pd.tseries.offsets.BDay(2 * 252)
+
+    current_start_date = pd.Timestamp(INITIAL_UNSEEN)
+    current_end_date = pd.Timestamp(FINAL_UNSEEN)
+    
+    while current_end_date <= pd.Timestamp(FINAL_UNSEEN):
+        main(DATA_STORE, FILE_PATH_UNSEEN, current_start_date, current_end_date, top)
+        
+        # Update dates for next iteration
+        current_start_date = current_end_date + pd.tseries.offsets.BDay(1)
+        current_end_date = current_start_date + business_days_offset
+
+    # For the regular dataset
+    # Initialize INITIAL to the start date of your dataset (assuming it's the minimum date in your dataset)
+    INITIAL = pd.Timestamp('1970-01-01')  # This is just a placeholder. Replace with your actual start date.
+    FINAL = INITIAL_UNSEEN  # Start the regular dataset just before the unseen dataset
+    FILE_PATH = f"/home/sayem/Desktop/Project/data/{top}_dataset.h5"
+
+    current_start_date = pd.Timestamp(INITIAL)
     current_end_date = current_start_date + business_days_offset
 
-    while current_end_date <= FINAL_END_DATE:
+    while current_end_date < pd.Timestamp(FINAL_UNSEEN):
         main(DATA_STORE, FILE_PATH, current_start_date, current_end_date, top)
         
         # Update dates for next iteration
-        current_start_date = current_end_date + pd.tseries.offsets.BDay(1)  # Start the next day
+        current_start_date = current_end_date + pd.tseries.offsets.BDay(1)
         current_end_date = current_start_date + business_days_offset
 
     # Process the remainder if any
-    if current_start_date < FINAL_END_DATE:
-        main(DATA_STORE, FILE_PATH, current_start_date, FINAL_END_DATE, top)
+    if current_start_date < pd.Timestamp(FINAL_UNSEEN):
+        main(DATA_STORE, FILE_PATH, current_start_date, pd.Timestamp(FINAL_UNSEEN) - pd.tseries.offsets.BDay(1), top)
+
+
+
+# import sys
+
+# if __name__ == "__main__":
+#     # The first argument (sys.argv[0]) is always the script name itself.
+#     if len(sys.argv) < 2:
+#         print("Please provide the 'top' value as an argument.")
+#         sys.exit(1)
+
+#     top = int(sys.argv[1])
+    
+#     DATA_STORE = Path('/home/sayem/Desktop/Project/data/assets.h5')
+#     FILE_PATH = f"/home/sayem/Desktop/Project/data/{top}_unseen_dataset.h5"
+
+#     FINAL = '2023-08-11'
+#     INITIAL = '2022-08-12'
+
+#     FINAL_END_DATE = pd.Timestamp(FINAL)
+#     INITIAL_START_DATE = pd.Timestamp(INITIAL)
+#     business_days_offset = pd.tseries.offsets.BDay(2 * 252)  # Approximation for 2 business years
+
+#     current_start_date = INITIAL_START_DATE
+#     current_end_date = current_start_date + business_days_offset
+
+#     while current_end_date <= FINAL_END_DATE:
+#         main(DATA_STORE, FILE_PATH, current_start_date, current_end_date, top)
+        
+#         # Update dates for next iteration
+#         current_start_date = current_end_date + pd.tseries.offsets.BDay(1)  # Start the next day
+#         current_end_date = current_start_date + business_days_offset
+
+#     # Process the remainder if any
+#     if current_start_date < FINAL_END_DATE:
+#         main(DATA_STORE, FILE_PATH, current_start_date, FINAL_END_DATE, top)
 
 
 
