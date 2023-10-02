@@ -9,5 +9,4 @@
 !.gitignore
 !*.sh
 !./Old/
-!./Old/**
 !.yml
