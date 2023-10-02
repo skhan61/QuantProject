@@ -1,12 +1,19 @@
 # Ignore all files by default
 *
+
+# Ignore specific files and directories
 *_creds.txt
 ./cnn
 ./output_notebook/**
-# Whitelist only .py and .ipynb files, and other specified files/folders
+
+# Whitelist specific file types and files globally
 !*.py
 !*.ipynb
 !.gitignore
 !*.sh
-!./Old/
 !.yml
+
+# Ignore everything in Old, then specifically whitelist only .py and .ipynb
+./Old/**
+!./Old/*.py
+!./Old/*.ipynb
