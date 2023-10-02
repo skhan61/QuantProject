@@ -3,9 +3,12 @@
 # Navigate to your project repository
 cd "/home/sayem/Desktop/Project"
 
+# Explicitly add the 'Old' folder recursively
+git add Old/
+
 # Check for changes in both working directory and staged area
 if [ -n "$(git diff)" ] || [ -n "$(git diff --cached)" ]; then
-    # Add all changes not mentioned in .gitignore
+    # Add all other changes not mentioned in .gitignore
     git add .
 
     # Commit the changes
