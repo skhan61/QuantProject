@@ -27,7 +27,7 @@ def run_experiment(top, target):
             pm.execute_notebook(
                 '07_a_ML _models_forecasting.ipynb',
                 str(output_notebook_path),
-                parameters={'dataset_key': key, 'top': top, 'label': target}
+                parameters={'dataset_key': key, 'top': top, 'target': target}
             )
 
             notebook_data = sb.read_notebook(str(output_notebook_path))
@@ -62,12 +62,14 @@ def run_experiment(top, target):
 
 # Iterate over different top and target values
 for top in top_values:
+    
     DATA_STORE = Path(f'data/{top}_dataset.h5')
     with pd.HDFStore(DATA_STORE) as store:
         # Assuming the dataset is a DataFrame stored under one of the keys
         first_key = [k for k in store.keys() if k.startswith('/data/YEAR_')][0]
         df = store[first_key]
         target_values = [col for col in df.columns if col.startswith('TARGET_ret_fwd_')]
+        print(target_values)
 
     for target in target_values:
         try:
