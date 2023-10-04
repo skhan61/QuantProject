@@ -45,45 +45,89 @@ def optimize_dataframe(df):
 
 # df_optimized = optimize_dataframe(alphas_p.copy())
 
+# import pandas as pd
+
+# def CustomBackwardMultipleTimeSeriesCV(dataframe, train_period_length=63*3, \
+#     test_period_length=63, lookahead=1, date_idx='date'):
+#     """
+#     Yields train and test indices for time series cross-validation.
+#     Iterates over the data frame from the end to the beginning.
+    
+#     Parameters:
+#         dataframe: The data to be split.
+#         train_period_length: The number of business days in the training set.
+#         test_period_length: The number of business days in the validation set.
+#         lookahead: The gap between training and validation sets.
+#         date_idx: The name of the date index in the dataframe.
+#     """
+    
+#     unique_dates = dataframe.index.get_level_values(date_idx).unique()
+#     end_date_idx = len(unique_dates)
+    
+#     while end_date_idx > 0:
+#         train_end = end_date_idx
+#         train_start = train_end - train_period_length
+        
+#         test_end = train_start - lookahead
+#         test_start = max(test_end - test_period_length, 0)  # Ensure the index doesn't go negative
+        
+#         if test_start == 0:
+#             break  # Break the loop if the test set would start at the beginning of the data
+        
+#         # Get the train and test date ranges
+#         train_dates = unique_dates[train_start:train_end]
+#         test_dates = unique_dates[test_start:test_end]
+        
+#         train_idx = dataframe.index.get_level_values(date_idx).isin(train_dates)
+#         test_idx = dataframe.index.get_level_values(date_idx).isin(test_dates)
+        
+#         yield train_idx, test_idx
+        
+#         end_date_idx = test_start - lookahead
+
+
 import pandas as pd
 
-def CustomBackwardMultipleTimeSeriesCV(dataframe, train_period_length=63*3, \
-    test_period_length=63, lookahead=1, date_idx='date'):
-    """
-    Yields train and test indices for time series cross-validation.
-    Iterates over the data frame from the end to the beginning.
-    
-    Parameters:
-        dataframe: The data to be split.
-        train_period_length: The number of business days in the training set.
-        test_period_length: The number of business days in the validation set.
-        lookahead: The gap between training and validation sets.
-        date_idx: The name of the date index in the dataframe.
-    """
-    
-    unique_dates = dataframe.index.get_level_values(date_idx).unique()
-    end_date_idx = len(unique_dates)
-    
-    while end_date_idx > 0:
-        train_end = end_date_idx
-        train_start = train_end - train_period_length
+class CustomBackwardMultipleTimeSeriesCV:
+    def __init__(self, dataframe, train_period_length=63*3, 
+                 test_period_length=63, lookahead=1, date_idx='date'):
+        self.dataframe = dataframe
+        self.train_period_length = train_period_length
+        self.test_period_length = test_period_length
+        self.lookahead = lookahead
+        self.date_idx = date_idx
+
+    def update_lookahead(self, lookahead):
+        self.lookahead = lookahead
+
+    def __iter__(self):
+        return self.generate_splits()
+
+    def generate_splits(self):
+        unique_dates = self.dataframe.index.get_level_values(self.date_idx).unique()
+        end_date_idx = len(unique_dates)
         
-        test_end = train_start - lookahead
-        test_start = max(test_end - test_period_length, 0)  # Ensure the index doesn't go negative
-        
-        if test_start == 0:
-            break  # Break the loop if the test set would start at the beginning of the data
-        
-        # Get the train and test date ranges
-        train_dates = unique_dates[train_start:train_end]
-        test_dates = unique_dates[test_start:test_end]
-        
-        train_idx = dataframe.index.get_level_values(date_idx).isin(train_dates)
-        test_idx = dataframe.index.get_level_values(date_idx).isin(test_dates)
-        
-        yield train_idx, test_idx
-        
-        end_date_idx = test_start - lookahead
+        while end_date_idx > 0:
+            train_end = end_date_idx
+            train_start = train_end - self.train_period_length
+
+            test_end = train_start - self.lookahead
+            test_start = max(test_end - self.test_period_length, 0)  # Ensure the index doesn't go negative
+            
+            if test_start == 0:
+                break  # Break the loop if the test set would start at the beginning of the data
+            
+            # Get the train and test date ranges
+            train_dates = unique_dates[train_start:train_end]
+            test_dates = unique_dates[test_start:test_end]
+            
+            train_idx = self.dataframe.index.get_level_values(self.date_idx).isin(train_dates)
+            test_idx = self.dataframe.index.get_level_values(self.date_idx).isin(test_dates)
+            
+            yield train_idx, test_idx
+            
+            end_date_idx = test_start - self.lookahead
+
 
 import gc
 import pandas as pd
@@ -202,30 +246,38 @@ def save_to_hdf(data, file_path, key_prefix):
 import pandas as pd
 import numpy as np
 
-def rank_stocks_and_quantile(df, TARGET_col='TARGET_ret_fwd_frac_order'):
+def rank_stocks_and_quantile(df, target_substring='TARGET_ret_fwd'):
     """
-    Ranks stocks within each date based on the specified TARGET column 
+    Ranks stocks within each date based on the columns containing the target substring
     and then bucket them into quantiles.
     
     Parameters:
         df (pd.DataFrame): Input dataframe with MultiIndex (date, ticker).
-        TARGET_col (str): Column name based on which the ranking needs to be done.
+        target_substring (str): Substring to identify target columns.
     
     Returns:
-        pd.DataFrame: Dataframe with original column, an additional column for ranks, 
-                      and quantized values.
+        pd.DataFrame: Dataframe with original column, additional columns for ranks, 
+                      and quantized values for each identified target column.
     """
-    rank_col_name = TARGET_col + '_rank'
-    quant_col_name = rank_col_name + '_quantiled'
     
-    # Ranking stocks within each date so that the highest value gets rank 1 (considered best)
-    df[rank_col_name] = df.groupby('date')[TARGET_col].rank(method="average", ascending=False).astype(int) # Change to descending
+    # Identify columns with target substring
+    target_cols = [col for col in df.columns if target_substring in col]
+    # print(target_cols)
 
-    # Bucketing the ranks into quantiles such that rank 1 is in the uppermost bucket (labelled as 1.0)
-    quantile_labels = [1.0, 0.75, 0.5, 0.25, 0.0]
-    df[quant_col_name] = pd.qcut(df[rank_col_name], q=5, labels=quantile_labels).astype(float)
+    for TARGET_col in target_cols:
+        rank_col_name = TARGET_col + '_rank'
+        quant_col_name = rank_col_name + '_quantiled'
+        
+        # Ranking stocks within each date so that the highest value gets rank 1 (considered best)
+        df[rank_col_name] = df.groupby('date')[TARGET_col].rank(method="average", ascending=False).astype(int)
+
+        # Bucketing the ranks into quantiles such that rank 1 is in the uppermost bucket (labelled as 1.0)
+        quantile_labels = [1.0, 0.75, 0.5, 0.25, 0.0]
+        df[quant_col_name] = pd.qcut(df[rank_col_name], q=5, labels=quantile_labels).astype(float)
     
-    # # Sorting by MultiIndex levels to preserve the original structure
+    # Sorting by MultiIndex levels to preserve the original structure
     df.sort_index(level=['date', 'ticker'], ascending=[True, True], inplace=True)
     
     return df
+
+
