@@ -140,8 +140,9 @@ if __name__ == "__main__":
     min_date_in_store, max_date_in_store = get_min_max_dates_from_store(DATA_STORE)
 
     # For the unseen dataset
+    UNSEEN_OFFSET_YEAR = 2
     FINAL_UNSEEN = max_date_in_store.strftime('%Y-%m-%d')
-    INITIAL_UNSEEN = (max_date_in_store - pd.DateOffset(years=1)).strftime('%Y-%m-%d')
+    INITIAL_UNSEEN = (max_date_in_store - pd.DateOffset(years=UNSEEN_OFFSET_YEAR)).strftime('%Y-%m-%d')
     FILE_PATH_UNSEEN = f"/home/sayem/Desktop/Project/data/{top}_unseen_dataset.h5"
 
     main(DATA_STORE, FILE_PATH_UNSEEN, INITIAL_UNSEEN, FINAL_UNSEEN, top)
