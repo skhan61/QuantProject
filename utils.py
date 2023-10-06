@@ -211,8 +211,6 @@ def clear_large_vars(threshold_size_in_MB=100):
             print(f"Clearing {var_name}, Size: {size:.2f}MB")
             del globals()[var_name]
 
-
-
 import pandas as pd
 
 def save_to_hdf(data, file_path, key_prefix):
