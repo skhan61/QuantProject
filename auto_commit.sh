@@ -5,7 +5,7 @@ cd "/home/sayem/Desktop/Project"
 
 # Explicitly add the 'Old' folder recursively
 find Old -type f \( -name "*.py" -o -name "*.ipynb" \) -exec git add -f {} \;
-find result -type f -name "*.html" -exec git add -f {} \;
+find report -type f -name "*.html" -exec git add -f {} \;
 # Check for changes in both working directory and staged area
 if [ -n "$(git diff)" ] || [ -n "$(git diff --cached)" ]; then
     # Add all other changes not mentioned in .gitignore
