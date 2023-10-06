@@ -17,3 +17,4 @@
 ./Old/**
 !./Old/*.py
 !./Old/*.ipynb
+!./report/*.html
