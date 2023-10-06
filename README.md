@@ -40,55 +40,8 @@ Contained within each stage of the pipeline are meticulously crafted notebooks t
 
 - [08_strategy_building_and_backtesting.ipynb](08_strategy_building_and_backtesting.ipynb): The apex - constructing and assessing the trading strategy.
 
-## Strategy Results:
-```
-                    Strategy
-------------------  ----------
-Start Period        2022-11-01
-End Period          2023-08-03
-Risk-Free Rate      0.0%
-Time in Market      89.0%
+## Strategy Results
 
-Cumulative Return   12.72%
-CAGR﹪              11.6%
-
-Sharpe              1.18
-Prob. Sharpe Ratio  84.51%
-Sortino             1.77
-Sortino/√2          1.25
-Omega               1.21
-
-Max Drawdown        -7.63%
-Longest DD Days     51
-
-Gain/Pain Ratio     0.21
-Gain/Pain (1M)      1.04
-
-Payoff Ratio        1.18
-Profit Factor       1.21
-Common Sense Ratio  1.24
-CPC Index           0.73
-Tail Ratio          1.02
-Outlier Win Ratio   2.69
-Outlier Loss Ratio  2.81
-
-MTD                 -2.3%
-3M                  2.27%
-6M                  8.62%
-YTD                 20.07%
-1Y                  12.72%
-3Y (ann.)           11.6%
-5Y (ann.)           11.6%
-10Y (ann.)          11.6%
-All-time (ann.)     11.6%
-
-Avg. Drawdown       -2.68%
-Avg. Drawdown Days  16
-Recovery Factor     1.67
-Ulcer Index         0.03
-Serenity Index      0.82
-
-```
 
 ### Additional Resources
 
