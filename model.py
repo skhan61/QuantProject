@@ -269,3 +269,46 @@ class Transformer(nn.Module):
 # if __name__ == "__main__":
 #     main()
 # test_model()
+
+
+import torch.nn as nn
+
+import torch 
+
+# PADDING_VALUE = -1
+# MAX_LEN = 500
+# FEATURE_DIM = len(features)
+# HIDDEN_DIM = 128
+# OUTPUT_DIM = 1 # len(target[0])
+# NUM_HEADS = 2
+# NUM_LAYERS = 2
+
+class SimpleNN(nn.Module):
+    def __init__(self, input_dim, output_dim):
+        super(SimpleNN, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 256)  # First fully connected layer
+        self.fc2 = nn.Linear(256, 128)        # Second fully connected layer
+        self.fc3 = nn.Linear(128, output_dim) # Output layer
+
+    def forward(self, x, mask):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x * mask  # This ensures that the outputs for padded positions are zero
+
+# def test_simple_model():
+#     inputs = [
+#         torch.randint(0, 4, (5, FEATURE_DIM)).float(),
+#         torch.randint(0, 4, (3, FEATURE_DIM)).float(),
+#     ]
+
+#     # Padding sequences to have the same length for batch processing
+#     padded_inputs, masks_inputs = pad_sequence(inputs)
+
+#     model = SimpleNN(FEATURE_DIM, OUTPUT_DIM)
+#     outputs = model(padded_inputs, masks_inputs)
+
+#     print("Input Shape:", padded_inputs.shape)
+#     print("Output Shape:", outputs.shape)
+
+# test_simple_model()
