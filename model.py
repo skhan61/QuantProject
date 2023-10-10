@@ -272,31 +272,40 @@ class Transformer(nn.Module):
 
 
 import torch.nn as nn
+import torch
 
-import torch 
+# Hyperparameters
+HIDDEN_LAYER_1 = 256
+HIDDEN_LAYER_2 = 128
+HIDDEN_LAYER_3 = 64
+DROPOUT_PROB = 0.5
 
-# PADDING_VALUE = -1
-# MAX_LEN = 500
-# FEATURE_DIM = len(features)
-# HIDDEN_DIM = 128
-# OUTPUT_DIM = 1 # len(target[0])
-# NUM_HEADS = 2
-# NUM_LAYERS = 2
-
-class SimpleNN(nn.Module):
+class RankPredictorNN(nn.Module):
     def __init__(self, input_dim, output_dim):
-        super(SimpleNN, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 256)  # First fully connected layer
-        self.fc2 = nn.Linear(256, 128)        # Second fully connected layer
-        self.fc3 = nn.Linear(128, output_dim) # Output layer
+        super(RankPredictorNN, self).__init__()
+        self.fc1 = nn.Linear(input_dim, HIDDEN_LAYER_1)   # First fully connected layer
+        self.fc2 = nn.Linear(HIDDEN_LAYER_1, HIDDEN_LAYER_2) # Second fully connected layer
+        self.fc3 = nn.Linear(HIDDEN_LAYER_2, HIDDEN_LAYER_3) # Third fully connected layer
+        self.fc4 = nn.Linear(HIDDEN_LAYER_3, output_dim)  # Output layer
+        self.dropout = nn.Dropout(DROPOUT_PROB)            # Dropout layer to prevent overfitting
+        self.sigmoid = nn.Sigmoid()                        # Sigmoid activation function
 
     def forward(self, x, mask):
         x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        
         x = torch.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x * mask  # This ensures that the outputs for padded positions are zero
+        x = self.dropout(x)
+        
+        x = torch.relu(self.fc3(x))
+        x = self.dropout(x)
+        
+        x = self.fc4(x)
+        x = self.sigmoid(x)  # Apply the sigmoid function to ensure output is between 0 and 1
+        return x * mask      # This ensures that the outputs for padded positions are zero
 
-# def test_simple_model():
+# Uncomment this to test your model
+# def test_rank_predictor_model():
 #     inputs = [
 #         torch.randint(0, 4, (5, FEATURE_DIM)).float(),
 #         torch.randint(0, 4, (3, FEATURE_DIM)).float(),
@@ -305,10 +314,11 @@ class SimpleNN(nn.Module):
 #     # Padding sequences to have the same length for batch processing
 #     padded_inputs, masks_inputs = pad_sequence(inputs)
 
-#     model = SimpleNN(FEATURE_DIM, OUTPUT_DIM)
+#     model = RankPredictorNN(FEATURE_DIM, OUTPUT_DIM)
 #     outputs = model(padded_inputs, masks_inputs)
 
 #     print("Input Shape:", padded_inputs.shape)
 #     print("Output Shape:", outputs.shape)
 
-# test_simple_model()
+# test_rank_predictor_model()
+
