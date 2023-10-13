@@ -143,9 +143,6 @@ This document outlines the various stages of the project pipeline along with the
 
 ---
 
-<-- ## Deployment & Live Trade
-*(No notebooks as of now for this stage)* -->
-
 ## Strategy Results
 
 ### Additional Resources
