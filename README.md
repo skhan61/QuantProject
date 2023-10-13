@@ -21,6 +21,10 @@ Research-oriented notebooks focus on sample selection and factor research. They 
 
 Machine Learning and Deep Learning models are then trained and tested. Experiments are managed via MLflow for transparency and reproducibility. Relevant notebooks include `06_a_ML_models_forecasting.ipynb`, `06_b_DL_models_forecasting.ipynb`, and `06_c_DL_models_generative.ipynb`.
 
+### Strategy Building and Backtesting
+
+In the 07_strategy_building_and_backtesting.ipynb notebook, a momentum-based trading strategy is devised employing traditional quantitative methods and modern portfolio optimization. The approach integrates machine learning predictions, dynamic portfolio rebalancing, and robust risk management techniques, including VaR computation and stop-loss mechanisms. This holistic strategy underscores the seamless fusion of ML insights with trading tactics.
+
 ### Operational Tools
 
 The project is supported by a series of scripts and utilities. These range from dataset management (`top_stock_dataset_pipeline.py`) to MLflow experiment tracking (`top_mlflow_experiment.py`). Operational aspects are further enhanced by scripts for Git and Docker automation (`auto_commit.sh`, `push_to_dockerhub.sh`).
@@ -90,7 +94,45 @@ F -.->|Feedback| E
 
 ```
 
-# Strategy Tear Sheet
+# Strategy Backtest Results
+
+### Core Metrics:
+| Metric               | SPY      | Strategy  |
+|----------------------|----------|-----------|
+| Risk-Free Rate       | 0.0%     | 0.0%      |
+| Cumulative Return    | 9.05%    | 99.06%    |
+| CAGR﹪               | 6.59%    | 66.07%    |
+| Sharpe               | 0.49     | 1.57      |
+| Sortino              | 0.73     | 2.65      |
+| Max Drawdown         | -12.88%  | -20.19%   |
+| Volatility (ann.)    | 15.6%    | 36.32%    |
+
+### Performance:
+| Metric               | SPY      | Strategy  |
+|----------------------|----------|-----------|
+| YTD                  | 19.09%   | 6.56%     |
+| 1Y                   | 9.05%    | 99.06%    |
+| 3Y (ann.)            | 6.59%    | 66.07%    |
+
+### Risk Metrics:
+| Metric               | SPY      | Strategy  |
+|----------------------|----------|-----------|
+| Max Consecutive Losses | 5      | 4         |
+| Daily Value-at-Risk  | -1.59%   | -3.54%    |
+| Expected Shortfall (cVaR) | -1.59% | -3.54% |
+
+### EOY Returns vs Benchmark:
+| Year                 | SPY      | Strategy  | Multiplier | Won  |
+|----------------------|----------|-----------|------------|------|
+| 2022                 | -8.43    | 86.80     | -10.30     | +    |
+| 2023                 | 19.09    | 6.56      | 0.34       | -    |
+
+### Worst 3 Drawdowns:
+| Started              | Recovered | Drawdown  | Days       |
+|----------------------|-----------|-----------|------------|
+| 2023-06-27           | 2023-08-03| -20.19    | 38         |
+| 2023-05-15           | 2023-06-22| -13.26    | 39         |
+| 2022-11-11           | 2022-11-29| -10.24    | 19         |
 
 # Project Workflow and Notebooks
 
