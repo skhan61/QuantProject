@@ -23,7 +23,7 @@ Machine Learning and Deep Learning models are then trained and tested. Experimen
 
 ### Strategy Building and Backtesting
 
-In the 07_strategy_building_and_backtesting.ipynb notebook, a momentum-based trading strategy is devised employing traditional quantitative methods and modern portfolio optimization. The approach integrates machine learning predictions, dynamic portfolio rebalancing, and robust risk management techniques, including VaR computation and stop-loss mechanisms. This holistic strategy underscores the seamless fusion of ML insights with trading tactics.
+In the `07_strategy_building_and_backtesting.ipynb` notebook, a momentum-based trading strategy is devised employing traditional quantitative methods and modern portfolio optimization. The approach integrates machine learning predictions, dynamic portfolio rebalancing, and robust risk management techniques, including VaR computation and stop-loss mechanisms. This holistic strategy underscores the seamless fusion of ML insights with trading tactics.
 
 ### Operational Tools
 
