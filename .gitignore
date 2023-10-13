@@ -9,10 +9,10 @@
 # Whitelist specific file types and files globally
 !*.py
 !*.ipynb
-!.gitignore
+!*.gitignore
 !*.sh
-!.yml
-!.html
+!*.yml
+!*.html
 
 # Ignore everything in Old, then specifically whitelist only .py and .ipynb
 ./Old/**
