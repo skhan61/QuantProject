@@ -12,6 +12,7 @@
 !.gitignore
 !*.sh
 !.yml
+!.html
 
 # Ignore everything in Old, then specifically whitelist only .py and .ipynb
 ./Old/**
