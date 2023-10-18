@@ -1,9 +1,8 @@
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/skhan61/QuantProject.git/main)
+# Deep Learning Statistical Arbitrage
 
-# End-to-End ML/DL Based Trade Strategy Development
-
-## Overview
+## Overview: End-to-End ML/DL Based Trade Strategy Development
 
 This project offers a comprehensive framework for the development and deployment of machine learning and deep learning models in trading strategies. Beginning with raw stock OHLCV data, the pipeline extends through data preprocessing, research, model training, and ultimately to live trading. The aim is to provide a full spectrum view of trading model development, inclusive of various skills and tools employed at different stages.
 
